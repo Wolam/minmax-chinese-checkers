@@ -47,19 +47,31 @@
 (define (valid-rank? rank) (and (>= rank 0) (< rank 10)))
 (define (valid-file? file) (and (>= file 0) (< file 10)))
 
+
+(define (valid-jump-by-offset foffset roffset rank file moves)
+   (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
+   (if (and (valid-rank? nrank) (valid-file? nfile))
+        (let ((jump-candidate (rank-file->location nrank nfile)))
+          (let ((piece (piece-at-location board jump-candidate)))
+             (if (not piece)
+                (cons jump-candidate moves)
+                moves)
+  ))moves))
+
 (define (valid-moves-by-offset color board location offsets)
   (define-values (rank file) (location->rank-file location))
   (for/fold ([moves '()])
             ([offset (in-list offsets)])
+
     (match-define (list roffset foffset) offset)
     (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
     (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((candidate (rank-file->location nrank nfile)))
           (let ((piece (piece-at-location board candidate)))
-            (if (or (not piece) (not (eq? (send piece color) color)))
+            (if (not piece)
                 (cons candidate moves)
-                moves)))
-        moves)))
+                (valid-jump-by-offset foffset roffset nrank nfile moves))))
+    moves)))
 
 
 (define ((king-moves color) board location)
