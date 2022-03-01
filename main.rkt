@@ -14,11 +14,10 @@
     (init-field name glyph font size moves [location #f])
     (super-new)
     (send this set-snipclass chinese-checkers-piece-snip-class)
-
     (define/public (set-location l) (set! location l))
     (define/public (get-location) location)
     (define/public (color)
-      (if (equal? (string-upcase name) name) 'white 'black))
+      (if (equal? name "W") 'white 'black))
     (define/public (valid-moves)
       (let ((admin (send this get-admin)))
         (if (and admin location)        ; can be #f is the snip is not owned
@@ -47,21 +46,49 @@
 (define (valid-rank? rank) (and (>= rank 0) (< rank 10)))
 (define (valid-file? file) (and (>= file 0) (< file 10)))
 
+(define turn-flag #f)
 
-(define (valid-jump-by-offset foffset roffset rank file moves)
+
+
+(define (valid-second-jump-by-offset foffset roffset rank file moves)
    (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
    (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((jump-candidate (rank-file->location nrank nfile)))
           (let ((piece (piece-at-location board jump-candidate)))
              (if (not piece)
-                (cons jump-candidate moves)
-                moves)
+                (cons jump-candidate moves) moves)
   ))moves))
 
-(define (valid-moves-by-offset color board location offsets)
+
+(define (valid-second-moves-by-offset board location rank file moves)
+  ;(define-values (rank file) (location->rank-file location))
+  (for
+      ([offset (in-list piece-offsets)])
+    (match-define (list roffset foffset) offset)
+    (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
+    (if (and (valid-rank? nrank) (valid-file? nfile))
+        (let ((candidate (rank-file->location nrank nfile)))
+          (let ((piece (piece-at-location board candidate)))
+            (if (not piece)
+                (cons candidate moves)
+                moves)))
+        moves)))
+
+
+(define (valid-jump-by-offset foffset roffset rank file moves board location)
+   (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
+   (if (and (valid-rank? nrank) (valid-file? nfile))
+        (let ((jump-candidate (rank-file->location nrank nfile)))
+          (let ((piece (piece-at-location board jump-candidate)))
+             (if (not piece)
+                (valid-second-moves-by-offset board location rank file moves) moves)
+  ))moves))
+
+
+(define (valid-moves-by-offset board location)
   (define-values (rank file) (location->rank-file location))
   (for/fold ([moves '()])
-            ([offset (in-list offsets)])
+            ([offset (in-list piece-offsets)])
 
     (match-define (list roffset foffset) offset)
     (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
@@ -70,19 +97,19 @@
           (let ((piece (piece-at-location board candidate)))
             (if (not piece)
                 (cons candidate moves)
-                (valid-jump-by-offset foffset roffset nrank nfile moves))))
+                (valid-jump-by-offset foffset roffset nrank nfile moves board location))))
     moves)))
 
+(define piece-offsets '((-1 -1) (-1 0) (-1 1) (0 -1) (0 1) (1 -1) (1 0) (1 1)))
 
-(define ((king-moves color) board location)
+(define ((piece-moves color) board location)
   (valid-moves-by-offset
-   color board location
-   '((-1 -1) (-1 0) (-1 1) (0 -1) (0 1) (1 -1) (1 0) (1 1))))
+   board location))
 
 (define chinese-checkers-piece-data
   (hash
-   "W" (cons #\u26AA (king-moves 'black))
-   "B" (cons #\u26AB (king-moves 'white))))
+   "W" (cons #\u26AA (piece-moves 'white))
+   "B" (cons #\u26AB (piece-moves 'black))))
 
 (define (make-chinese-checkers-piece id [location #f])
   (match-define (cons glyph moves) (hash-ref chinese-checkers-piece-data id))
@@ -98,17 +125,33 @@
     (define drag-dy 0)
     (define highlight-location #f)
     (define valid-move-locations '())
-    (define opponent-move-locations '())
+    (define turn 'black)
+    (define message #f)
+    (define message-timer
+      (new timer%
+           [notify-callback (lambda ()
+                              (set! message #f)
+                              (send (send this get-canvas) refresh))]))
 
-    (define/override (on-paint before? dc . other)
-      (when before?
-        (draw-chinese-checkers-board dc)
-        (for ((location (in-list valid-move-locations)))
-          (highlight-square dc location #f "seagreen"))
-        (for ((location (in-list opponent-move-locations)))
-          (highlight-square dc location "firebrick" #f))
-        (when highlight-location
-          (highlight-square dc highlight-location #f "indianred"))))
+    
+    (define (set-message m)
+      (set! message m)
+      (send message-timer start 2000)
+      (send (send this get-canvas) refresh))
+
+
+     (define/override (on-paint before? dc . other)
+      (if before?
+          (begin
+            (draw-chinese-checkers-board dc)
+            (for ((location (in-list valid-move-locations)))
+              (highlight-square dc location #f "seagreen"))
+            (when highlight-location
+              (highlight-square dc highlight-location #f "indianred")))
+          ;; message is drawn after the snips
+          (when message
+            (display-message dc message))))
+    
     
     (define/augment (after-insert chinese-checkers-piece . rest)
       (position-piece this chinese-checkers-piece))
@@ -131,6 +174,16 @@
             (set! highlight-location location)
             (send (send this get-canvas) refresh)))))
 
+    (define/augment (can-interactive-move? event)
+      (define piece (send this find-next-selected-snip #f))
+      ;; The user tried to move a piece of the opposite color, remind them
+      ;; again
+      (unless (eq? turn (send piece color))
+        (set-message (format "It's ~a turn to move"
+                      (if (eq? turn 'white) "white's" "black's"))))
+      (eq? turn (send piece color)))
+
+
     (define/augment (on-interactive-move event)
       (define piece (send this find-next-selected-snip #f))
       (define-values (x y) (values (box 0) (box 0)))
@@ -149,6 +202,8 @@
           (when (and target-piece (not (eq? piece target-piece)))
             (send target-piece set-location #f)
             (send this remove target-piece)))
+        ; verificar si tiene jugada disponible
+        (set! turn (if (eq? turn 'white) 'black 'white))
         (send piece set-location location))
       ;; If the move is not valid it will be moved back.
       (position-piece this piece)
@@ -161,24 +216,15 @@
     (define/augment (after-select snip on?)
       (if on?
           (begin
-            (set! valid-move-locations (send snip valid-moves))
-            (set! opponent-move-locations
-                  (collect-opponent-moves this (send snip color))))
+            (unless (eq? turn (send snip color))
+              (set-message (format "It's ~a turn to move"
+                            (if (eq? turn 'white) "white's" "black's"))))
+            (set! valid-move-locations (send snip valid-moves)))
           (begin
-            (set! opponent-move-locations '())
             (set! valid-move-locations '())))
       (send (send this get-canvas) refresh))
 
     ))
-
-(define (collect-opponent-moves board color)
-  (define moves '())
-  (let loop ((snip (send board find-first-snip)))
-    (when snip
-      (unless (eq? (send snip color) color)
-        (set! moves (append moves (send snip valid-moves))))
-      (loop (send snip next))))
-  (remove-duplicates moves))
 
 (define (position-piece board piece)
   (define-values (canvas-width canvas-height)
@@ -234,6 +280,21 @@
             snip
             (loop (send snip next)))
         #f)))
+
+(define (display-message dc message)
+  (define font (send the-font-list find-or-create-font 24 'default 'normal 'normal))
+  (define-values [w h _1 _2] (send dc get-text-extent message font #t))
+  (define-values (dc-width dc-height) (send dc get-size))
+  (define-values (x y) (values (/ (- dc-width w) 2) (/ (- dc-height h) 2)))
+
+  (define brush (send the-brush-list find-or-create-brush "bisque" 'solid))
+  (define pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
+  (send dc set-brush brush)
+  (send dc set-pen pen)
+  (send dc draw-rectangle 0 y dc-width h)
+  (send dc set-font font)
+  (send dc set-text-foreground "firebrick")
+  (send dc draw-text message x y))
 
 
 (define (draw-chinese-checkers-board dc)
