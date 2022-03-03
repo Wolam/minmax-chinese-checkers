@@ -75,20 +75,19 @@
         moves)))|#
 
 
-(define (valid-jump-by-offset foffset roffset rank file moves board location)
+(define (valid-jump-by-offset foffset roffset rank file moves board location first-call visited)
    (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
    (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((jump-candidate (rank-file->location nrank nfile)))
           (let ((piece (piece-at-location board jump-candidate)))
-             (if (not piece)
-                 (cons jump-candidate moves)
+             (if (and (not piece) (not (member jump-candidate visited)))
+                 (cons jump-candidate (valid-moves-by-offset board jump-candidate #f moves (cons jump-candidate visited)))
                 moves)
   ))moves))
 
-
-(define (valid-moves-by-offset board location)
+(define (valid-moves-by-offset board location first-call moves visited)
   (define-values (rank file) (location->rank-file location))
-  (for/fold ([moves '()])
+  (for/fold ([moves moves])
             ([offset (in-list piece-offsets)])
 
     (match-define (list roffset foffset) offset)
@@ -96,16 +95,16 @@
     (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((candidate (rank-file->location nrank nfile)))
           (let ((piece (piece-at-location board candidate)))
-            (if (not piece)
-                (cons candidate moves)
-                (valid-jump-by-offset foffset roffset nrank nfile moves board location))))
+            (cond [(and (not piece) (not first-call)) moves]
+                [(and (not piece) first-call) (cons candidate moves)]
+                [else (valid-jump-by-offset foffset roffset nrank nfile moves board location first-call visited)])))
     moves)))
 
 (define piece-offsets '((-1 -1) (-1 0) (-1 1) (0 -1) (0 1) (1 -1) (1 0) (1 1)))
 
 (define ((piece-moves color) board location)
   (valid-moves-by-offset
-   board location))
+   board location #t '() '()))
 
 (define chinese-checkers-piece-data
   (hash
