@@ -49,7 +49,7 @@
 (define turn-flag #f)
 
 
-
+#|
 (define (valid-second-jump-by-offset foffset roffset rank file moves)
    (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
    (if (and (valid-rank? nrank) (valid-file? nfile))
@@ -72,7 +72,7 @@
             (if (not piece)
                 (cons candidate moves)
                 moves)))
-        moves)))
+        moves)))|#
 
 
 (define (valid-jump-by-offset foffset roffset rank file moves board location)
@@ -81,7 +81,8 @@
         (let ((jump-candidate (rank-file->location nrank nfile)))
           (let ((piece (piece-at-location board jump-candidate)))
              (if (not piece)
-                (valid-second-moves-by-offset board location rank file moves) moves)
+                 (cons jump-candidate moves)
+                moves)
   ))moves))
 
 
