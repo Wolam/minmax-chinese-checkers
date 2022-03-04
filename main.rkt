@@ -72,7 +72,7 @@
                 [else (valid-jump-by-offset foffset roffset nrank nfile moves board location first-call visited)])))
     moves)))
 
-(define piece-offsets '((-1 -1) (-1 0) (-1 1) (0 -1) (0 1) (1 -1) (1 0) (1 1)))
+(define piece-offsets '((-1 -1) (-1 0) (0 -1) (0 1) (1 0) (1 1)))
 
 (define ((piece-moves color) board location)
   (valid-moves-by-offset
