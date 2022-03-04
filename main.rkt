@@ -46,34 +46,6 @@
 (define (valid-rank? rank) (and (>= rank 0) (< rank 10)))
 (define (valid-file? file) (and (>= file 0) (< file 10)))
 
-(define turn-flag #f)
-
-
-#|
-(define (valid-second-jump-by-offset foffset roffset rank file moves)
-   (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
-   (if (and (valid-rank? nrank) (valid-file? nfile))
-        (let ((jump-candidate (rank-file->location nrank nfile)))
-          (let ((piece (piece-at-location board jump-candidate)))
-             (if (not piece)
-                (cons jump-candidate moves) moves)
-  ))moves))
-
-
-(define (valid-second-moves-by-offset board location rank file moves)
-  ;(define-values (rank file) (location->rank-file location))
-  (for
-      ([offset (in-list piece-offsets)])
-    (match-define (list roffset foffset) offset)
-    (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
-    (if (and (valid-rank? nrank) (valid-file? nfile))
-        (let ((candidate (rank-file->location nrank nfile)))
-          (let ((piece (piece-at-location board candidate)))
-            (if (not piece)
-                (cons candidate moves)
-                moves)))
-        moves)))|#
-
 
 (define (valid-jump-by-offset foffset roffset rank file moves board location first-call visited)
    (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
@@ -180,7 +152,7 @@
       ;; again
       (unless (eq? turn (send piece color))
         (set-message (format "It's ~a turn to move"
-                      (if (eq? turn 'white) "white's" "black's"))))
+                      (if (eq? turn 'white) "IA" "Player's"))))
       (eq? turn (send piece color)))
 
 
@@ -202,9 +174,12 @@
           (when (and target-piece (not (eq? piece target-piece)))
             (send target-piece set-location #f)
             (send this remove target-piece)))
-        ; verificar si tiene jugada disponible
         (set! turn (if (eq? turn 'white) 'black 'white))
-        (send piece set-location location))
+        (send piece set-location location)
+        ; check if the player won
+        (cond [(check-win? 'black board '("j6" "i7" "h8" "g9" "j7" "i8" "h9") '("j9" "j8" "i9")) (set-message "Player Wins")]
+              [(check-win? 'white board '("c0" "b1" "a2" "d0" "c1" "b2" "a3") '("a0" "a1" "b0")) (set-message "AI Wins")]))
+      
       ;; If the move is not valid it will be moved back.
       (position-piece this piece)
       (set! highlight-location #f)
@@ -218,7 +193,7 @@
           (begin
             (unless (eq? turn (send snip color))
               (set-message (format "It's ~a turn to move"
-                            (if (eq? turn 'white) "white's" "black's"))))
+                            (if (eq? turn 'white) "IA" "Player's"))))
             (set! valid-move-locations (send snip valid-moves)))
           (begin
             (set! valid-move-locations '())))
@@ -244,13 +219,13 @@
 
 (define (location->rank-file location)
   (unless (and (string? location) (= (string-length location) 2))
-    (raise-argument-error 'location "valid chinese-checkers position a1 .. h8" location))
+    (raise-argument-error 'location "valid chinese-checkers position a0 .. j9" location))
   (define file
     (index-of '(#\a #\b #\c #\d #\e #\f #\g #\h #\i #\j) (string-ref location 0)))
   (define rank
     (index-of '(#\9 #\8 #\7 #\6 #\5 #\4 #\3 #\2 #\1 #\0) (string-ref location 1)))
   (unless (and rank file)
-    (raise-argument-error 'location "valid chinese-checkers position a1 .. h8" location))
+    (raise-argument-error 'location "valid chinese-checkers position a0 .. j9" location))
   (values rank file))
 
 
@@ -315,7 +290,17 @@
          #:when (or (and (odd? row) (even? col))
                     (and (even? row) (odd? col))))
     (define-values [x y] (values (* col cell-width) (* row cell-height)))
-    (send dc draw-rectangle x y cell-width cell-height)))
+    (send dc draw-rectangle x y cell-width cell-height))
+
+(for ([(rank index) (in-indexed '("9" "8" "7" "6" "5" "4" "3" "2" "1" "0"))])
+    (define-values [_0 h _1 _2] (send dc get-text-extent rank font #t))
+    (define y (+ (* index cell-height) (- (/ cell-height 2) (/ h 2))))
+    (send dc draw-text rank margin y))
+
+  (for ([(file index) (in-indexed '("a" "b" "c" "d" "e" "f" "g" "h" "i" "j"))])
+    (define-values [w h _1 _2] (send dc get-text-extent file font #t))
+    (define x (+ (* index cell-width) (- (/ cell-width 2) (/ w 2))))
+    (send dc draw-text file x (- dc-height h margin))))
 
 
 (define (highlight-square dc location color-name border-color-name)
@@ -356,6 +341,62 @@
   (string-append
    "Ba0Ba1Ba2Ba3Bb0Bb1Bb2Bc0Bc1Bd0"
    "Wj9Wj8Wj7Wj6Wi9Wi8Wi7Wh9Wh8Wg9"))
+
+
+(define (color-at-location location board)
+    (let ((piece (piece-at-location board location)))
+             (if piece
+                 (send piece color)
+                 #f)))
+
+(define (colors-at-locations locations packed board)
+ (if (empty? locations)
+     packed
+     (colors-at-locations (cdr locations) (cons (color-at-location (car locations) board) packed) board)))
+
+(define (check-win? color board diagonals trappeds)
+  ;agarrar diagonales
+  ;comparar diagonales
+  ;agarrar encerrados
+  ;comparar encerrados
+  (if (equal? color 'black) (and (equal? (colors-at-locations diagonals '() board) first-diagonals-black-win)
+       (member (colors-at-locations trappeds '() board) black-win-cases))
+      (and (equal? (colors-at-locations diagonals '() board) first-diagonals-white-win)
+       (member (colors-at-locations trappeds '() board) white-win-cases)))
+  )
+
+; c0 b1 a2 d0 c1 b2 a3
+(define first-diagonals-white-win (list 'white 'white 'white 'white 'white 'white 'white))
+; j6 i7 h8 g9 j7 i8 h9
+(define first-diagonals-black-win (list 'black 'black 'black 'black 'black 'black 'black))
+
+
+
+; a0 a1 b0
+(define one-trapped1-white-win (list 'black 'white 'white))
+(define one-trapped2-white-win (list 'white 'black 'white))
+(define one-trapped3-white-win (list 'white 'white 'black))
+(define two-trapped1-white-win (list 'white 'black 'black))
+(define two-trapped2-white-win (list 'black 'white 'black))
+(define two-trapped3-white-win (list 'black 'white 'black))
+(define all-trapped-white-win (list 'white 'white 'white))
+(define all-trapped-black-win (list 'black 'black 'black))
+
+; j9 j8 i9
+(define one-trapped1-black-win (list 'white 'black 'black))
+(define one-trapped2-black-win (list 'black 'white 'black))
+(define one-trapped3-black-win (list 'black 'black 'white))
+(define two-trapped1-black-win (list 'white 'black 'white))
+(define two-trapped2-black-win (list 'white 'white 'black))
+(define two-trapped3-black-win (list 'black 'white 'white))
+
+
+(define white-win-cases (list one-trapped1-white-win one-trapped2-white-win one-trapped3-white-win
+                                                    two-trapped1-white-win two-trapped2-white-win two-trapped3-white-win all-trapped-white-win all-trapped-black-win))
+
+(define black-win-cases (list one-trapped1-black-win one-trapped2-black-win one-trapped3-black-win
+                                                    two-trapped1-black-win two-trapped2-black-win two-trapped3-black-win all-trapped-black-win all-trapped-white-win))
+
 
 (define (setup-board board position)
   (send board clear)
