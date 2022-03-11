@@ -1,6 +1,8 @@
 #lang racket/gui
 (require embedded-gui)
 
+(struct node (black-pieces white-pieces children) #:mutable #:transparent)
+
 (define chinese-checkers-piece-snip-class
   (make-object
    (class snip-class%
@@ -11,13 +13,15 @@
 
 (define chinese-checkers-piece%
   (class snip%
-    (init-field name glyph font size moves [location #f])
+    (init-field id name glyph font size moves [location #f])
     (super-new)
     (send this set-snipclass chinese-checkers-piece-snip-class)
     (define/public (set-location l) (set! location l))
     (define/public (get-location) location)
     (define/public (color)
       (if (equal? name "W") 'white 'black))
+    (define/public (set-id i) (set! id i))
+    (define/public (get-id) id)
     (define/public (valid-moves)
       (let ((admin (send this get-admin)))
         (if (and admin location)        ; can be #f is the snip is not owned
@@ -83,10 +87,17 @@
    "W" (cons #\u26AA (piece-moves 'white))
    "B" (cons #\u26AB (piece-moves 'black))))
 
-(define (make-chinese-checkers-piece id [location #f])
-  (match-define (cons glyph moves) (hash-ref chinese-checkers-piece-data id))
+
+(define (get-id-counter)
+  (let ((current-id piece-id-counter))
+    (set! piece-id-counter (+ piece-id-counter 1))
+    current-id))
+
+(define piece-id-counter 0)
+(define (make-chinese-checkers-piece color-name [location #f])
+  (match-define (cons glyph moves) (hash-ref chinese-checkers-piece-data color-name))
   (define font (send the-font-list find-or-create-font 20 'default 'normal 'normal))
-  (new chinese-checkers-piece% [name id] [glyph (string glyph)] [font font]
+  (new chinese-checkers-piece% [id (get-id-counter)] [name color-name] [glyph (string glyph)] [font font]
                     [size 35] [location location] [moves moves]))
 
 (define chinese-checkers-board%
@@ -152,7 +163,7 @@
       ;; again
       (unless (eq? turn (send piece color))
         (set-message (format "It's ~a turn to move"
-                      (if (eq? turn 'white) "IA" "Player's"))))
+                      (if (eq? turn 'white) "AI" "Player's"))))
       (eq? turn (send piece color)))
 
 
@@ -176,9 +187,23 @@
             (send this remove target-piece)))
         (set! turn (if (eq? turn 'white) 'black 'white))
         (send piece set-location location)
+        (set! hash-black-pieces (hash-set hash-black-pieces (send piece get-id) location))
         ; check if the player won
         (cond [(check-win? 'black board '("j6" "i7" "h8" "g9" "j7" "i8" "h9") '("j9" "j8" "i9")) (set-message "Player Wins")]
-              [(check-win? 'white board '("c0" "b1" "a2" "d0" "c1" "b2" "a3") '("a0" "a1" "b0")) (set-message "AI Wins")]))
+              [(check-win? 'white board '("c0" "b1" "a2" "d0" "c1" "b2" "a3") '("a0" "a1" "b0")) (set-message "AI Wins")])
+        (when (eq? turn 'white)
+          (when (not (eq? initial-move-counter 5))
+            (let ((positions (second (get-initial-move))))
+              (send (piece-at-location board (first positions)) set-location (second positions))
+              (position-piece board (piece-at-location board (second positions)))
+              ))
+          ;AI minmax, create tree
+          ;(let ((AI-move get-AI-move)));(first AI-move) = piece-id ; (second AI-move) = (original-position new-position)
+            
+          (set! turn 'black)
+          ;(define (tree (create-tree board)))
+         )
+        )
       
       ;; If the move is not valid it will be moved back.
       (position-piece this piece)
@@ -200,6 +225,48 @@
       (send (send this get-canvas) refresh))
 
     ))
+
+(define (get-initial-move)
+  (if (empty? initial-AI-moves) #f
+  (let ((current-move (car initial-AI-moves)))
+  (set! initial-AI-moves (cdr initial-AI-moves))
+  (set! initial-move-counter (+ initial-move-counter 1))
+    current-move)))
+
+;(define (create-tree black-positions white-positions current-depth total-depth player)
+;  (let ((current-node (node black-positions white-positions empty)))
+;    (if (eq? current-depth total-depth) current-node
+;        (when (eq? player 'white)
+          
+
+(define initial-AI-moves '( '("h9" "h7") '("h7" "g7") '("j9" "f7") '("i8" "g6") '("g9" "g8")))
+(define initial-move-counter 0)
+(define (create-tree board) "a")
+(define hash-black-pieces
+    (hash
+     0 "a0"
+     1 "a1"
+     2 "a2"
+     3 "a3"
+     4 "b0"
+     5 "b1"
+     6 "b2"
+     7 "c0"
+     8 "c1"
+     9 "d0"))
+
+(define hash-white-pieces
+    (hash
+     10 "f7"
+     11 "j8"
+     12 "j7"
+     13 "j6"
+     14 "i9"
+     15 "g6"
+     16 "i7"
+     17 "g7"
+     18 "h8"
+     19 "g8"))
 
 (define (position-piece board piece)
   (define-values (canvas-width canvas-height)
