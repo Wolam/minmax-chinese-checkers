@@ -52,18 +52,18 @@
 
 
 
-(define (valid-jump-by-hash-offset white-pieces black-pieces piece-id nrank nfile moves first-call visited)
+(define (valid-jump-by-hash-offset white-pieces black-pieces location nrank nfile moves first-call visited)
    (if (and (valid-rank? nrank) (valid-file? nfile))
-        (let ((jump-candidate (rank-file->location nrank nfile))) 
-                  (let ((piece (or (member jump-candidate (hash-values hash-black-pieces)) (member jump-candidate (hash-values hash-white-pieces)))))
+        (let ((jump-candidate (rank-file->location nrank nfile)))
+                  (let ((piece (or (member jump-candidate (hash-values black-pieces)) (member jump-candidate (hash-values white-pieces)))))
              (if (and (not piece) (not (member jump-candidate visited)))
-                 (cons jump-candidate (valid-moves-by-board-offset board jump-candidate #f moves (cons jump-candidate visited)))
+                 (cons jump-candidate (valid-moves-by-hashes-offset white-pieces black-pieces jump-candidate #f moves (cons jump-candidate visited)))
                 moves)
   ))moves))
 
 
-(define (valid-moves-by-hashes-offset white-pieces black-pieces piece-id first-call moves visited)
-  (define-values (rank file) (piece-id->location piece-id))
+(define (valid-moves-by-hashes-offset white-pieces black-pieces location first-call moves visited)
+  (define-values (rank file) (location->rank-file location))
   (for/fold ([moves moves])
             ([offset (in-list piece-offsets)])
 
@@ -71,20 +71,19 @@
     (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
     (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((candidate (rank-file->location nrank nfile)))
-          (let ((piece (or (member candidate (hash-values hash-black-pieces)) (member candidate (hash-values hash-white-pieces)))))
+          (let ((piece (or (member candidate (hash-values black-pieces)) (member candidate (hash-values white-pieces)))))
             (cond [(and (not piece) (not first-call)) moves]
                 [(and (not piece) first-call) (cons candidate moves)]
-                [else (valid-jump-by-hash-offset white-pieces black-pieces piece-id (+ nrank roffset) (+ nfile foffset) moves first-call visited)])))
+                [else (valid-jump-by-hash-offset white-pieces black-pieces location (+ nrank roffset) (+ nfile foffset) moves first-call visited)])))
     moves)))
 
 
 ;---------------------------------------------------
 
 (define (valid-jump-by-offset nrank nfile moves board location first-call visited)
-  ;;(define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
    (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((jump-candidate (rank-file->location nrank nfile))) 
-          (let ((piece (piece-at-location board jump-candidate))) ; member en hash-values instead of piece-at-location
+          (let ((piece (piece-at-location board jump-candidate)))
              (if (and (not piece) (not (member jump-candidate visited)))
                  (cons jump-candidate (valid-moves-by-board-offset board jump-candidate #f moves (cons jump-candidate visited)))
                 moves)
@@ -102,7 +101,7 @@
     (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
     (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((candidate (rank-file->location nrank nfile)))
-          (let ((piece (piece-at-location board candidate))) ; member en hash-values instead of piece-at-location
+          (let ((piece (piece-at-location board candidate)))
             (cond [(and (not piece) (not first-call)) moves]
                 [(and (not piece) first-call) (cons candidate moves)]
                 [else (valid-jump-by-offset (+ nrank roffset) (+ nfile foffset) moves board location first-call visited)])))
@@ -112,7 +111,8 @@
 
 (define ((piece-moves color) board location)
   (valid-moves-by-board-offset
-   board location #t '() '()))
+   board location #t '() '())
+  )
 
 (define chinese-checkers-piece-data
   (hash
@@ -338,10 +338,10 @@
    (list-ref '(#\9 #\8 #\7 #\6 #\5 #\4 #\3 #\2 #\1 #\0) rank)))
 
 
-(define (piece-id->location id)
+(define (piece-id->location id white-pieces black-pieces)
   (if (and (< id 10) (>= id 0))
-     (hash-ref id hash-black-pieces)
-     (hash-ref id hash-white-pieces))) 
+     (hash-ref black-pieces id)
+     (hash-ref white-pieces id)))
 
 
 (define (xy->location board x y)
