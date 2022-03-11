@@ -265,15 +265,26 @@
   (set! initial-move-counter (+ initial-move-counter 1))
     current-move)))
 
-;(define (create-tree black-positions white-positions current-depth total-depth player)
-;  (let ((current-node (node black-positions white-positions empty)))
-;    (if (eq? current-depth total-depth) current-node
-;        (when (eq? player 'white)
-          
 
+(define (create-tree current-positions opposite-positions current-depth total-depth)
+  
+  (let ((current-node (node (if (hash-has-key? current-positions 1) current-positions opposite-positions)
+                            (if (hash-has-key? current-positions 1) opposite-positions current-positions) empty)))
+    (if (eq? current-depth total-depth) current-node
+          ((for ([(piece-id current-piece) current-positions])
+            (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset (if (hash-has-key? current-positions 1) opposite-positions current-positions)
+                                                                                         (if (hash-has-key? current-positions 1) current-positions opposite-positions) current-piece #t '() '()))))
+              (for ([current-move possible-piece-moves])
+                (let ((temp-current-positions (hash-set current-positions piece-id current-piece)))
+                  (set-node-children! current-node (append (node-children current-node)
+                                                          (list (create-tree opposite-positions (hash-set current-positions piece-id current-move) (+ current-depth 1) total-depth)
+                                                          )))
+                  (set! current-positions temp-current-positions)))))
+          (displayln current-node)))))
+          
 (define initial-AI-moves '( '("h9" "h7") '("h7" "g7") '("j9" "f7") '("i8" "g6") '("g9" "g8")))
 (define initial-move-counter 0)
-(define (create-tree board) "a")
+;(define (create-tree board) "a")
 (define hash-black-pieces
     (hash
      0 "a0"
