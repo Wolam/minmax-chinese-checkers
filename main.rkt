@@ -400,7 +400,7 @@
 
 
 (define (draw-chinese-checkers-board dc)
-  (define brush (send the-brush-list find-or-create-brush "gray" 'solid))
+  (define brush (send the-brush-list find-or-create-brush "Tan" 'solid))
   (define pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
   (define font (send the-font-list find-or-create-font 10 'default 'normal 'normal))
   (define-values (dc-width dc-height) (send dc get-size))
@@ -419,7 +419,16 @@
     (define-values [x y] (values (* col cell-width) (* row cell-height)))
     (send dc draw-rectangle x y cell-width cell-height))
 
-(for ([(rank index) (in-indexed '("9" "8" "7" "6" "5" "4" "3" "2" "1" "0"))])
+  (define brush-2 (send the-brush-list find-or-create-brush "Saddle Brown" 'solid))
+  (send dc set-brush brush-2)
+  
+  (for* ([row (in-range 10)] [col (in-range 10)]
+         #:when (or (and (even? row) (even? col))
+                    (and (odd? row) (odd? col))))
+    (define-values [x y] (values (* col cell-width) (* row cell-height)))
+    (send dc draw-rectangle x y cell-width cell-height))
+
+  (for ([(rank index) (in-indexed '("9" "8" "7" "6" "5" "4" "3" "2" "1" "0"))])
     (define-values [_0 h _1 _2] (send dc get-text-extent rank font #t))
     (define y (+ (* index cell-height) (- (/ cell-height 2) (/ h 2))))
     (send dc draw-text rank margin y))
