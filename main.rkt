@@ -160,9 +160,9 @@
           (begin
             (draw-chinese-checkers-board dc)
             (for ((location (in-list valid-move-locations)))
-              (highlight-square dc location #f "seagreen"))
+              (highlight-square dc location #f "green"))
             (when highlight-location
-              (highlight-square dc highlight-location #f "indianred")))
+              (highlight-square dc highlight-location #f "red")))
           ;; message is drawn after the snips
           (when message
             (display-message dc message))))
@@ -267,26 +267,18 @@
 
 
 (define (create-tree current-positions opposite-positions current-depth total-depth)
-  ;(printf "current: ~a\n " current-positions)
-  ;(printf "oppol: ~a\n " opposite-positions)
-  ;(printf "cur-depth ~a\n " current-depth)
-  ;(printf "total-depth ~a\n " total-depth)
-  
-  (let ((current-node (node (if (hash-has-key? current-positions 1) current-positions opposite-positions)
-                            (if (hash-has-key? current-positions 1) opposite-positions current-positions) empty)))
+  (let ((current-node (node (black-positions current-positions opposite-positions)
+                            (white-positions current-positions opposite-positions) empty)))
     (when (not (eq? current-depth total-depth))
           (for ([(piece-id current-piece) current-positions])
-            (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset (if (hash-has-key? current-positions 1) opposite-positions current-positions)
-                                                                                         (if (hash-has-key? current-positions 1) current-positions opposite-positions) current-piece #t '() '()))))
+            (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset (white-positions current-positions opposite-positions)
+                                                                                         (black-positions current-positions opposite-positions) current-piece #t '() '()))))
               (for ([current-move possible-piece-moves])
                 (let ((temp-current-positions (hash-set current-positions piece-id current-piece)))
-                  ;(displayln "Holaaaaaaaaaaaaa")
                   (set-node-children! current-node (append (node-children current-node)
-                                                          (list (create-tree opposite-positions (hash-set current-positions piece-id current-move) (+ current-depth 1) total-depth)
+                                                          (list (create-tree opposite-positions (hash-set current-positions piece-id current-move) (+ current-depth 1) total-depth) (list piece-id current-piece current-move)
                                                           )))
-                  ;(displayln "ADIOOOOOOOOOOOOOOOOOOOOOS")
                   (set! current-positions temp-current-positions)
-                  ;(displayln "TA LUEGOOOOOOOOOOO")
                   )))
           )current-node) current-node))
        
@@ -358,11 +350,17 @@
    (list-ref '(#\a #\b #\c #\d #\e #\f #\g #\h #\i #\j) file)
    (list-ref '(#\9 #\8 #\7 #\6 #\5 #\4 #\3 #\2 #\1 #\0) rank)))
 
-
+#|
 (define (piece-id->location id white-pieces black-pieces)
   (if (and (< id 10) (>= id 0))
      (hash-ref black-pieces id)
      (hash-ref white-pieces id)))
+|#
+
+(define (black-positions hash-1 hash-2)
+  (if (hash-has-key? hash-1 1) hash-1 hash-2))
+(define (white-positions hash-1 hash-2)
+  (if (hash-has-key? hash-1 1) hash-2 hash-1))
 
 
 (define (xy->location board x y)
