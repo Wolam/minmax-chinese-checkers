@@ -267,24 +267,33 @@
 
 
 (define (create-tree current-positions opposite-positions current-depth total-depth)
+  ;(printf "current: ~a\n " current-positions)
+  ;(printf "oppol: ~a\n " opposite-positions)
+  ;(printf "cur-depth ~a\n " current-depth)
+  ;(printf "total-depth ~a\n " total-depth)
   
   (let ((current-node (node (if (hash-has-key? current-positions 1) current-positions opposite-positions)
                             (if (hash-has-key? current-positions 1) opposite-positions current-positions) empty)))
-    (if (eq? current-depth total-depth) current-node
-          ((for ([(piece-id current-piece) current-positions])
+    (when (not (eq? current-depth total-depth))
+          (for ([(piece-id current-piece) current-positions])
             (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset (if (hash-has-key? current-positions 1) opposite-positions current-positions)
                                                                                          (if (hash-has-key? current-positions 1) current-positions opposite-positions) current-piece #t '() '()))))
               (for ([current-move possible-piece-moves])
                 (let ((temp-current-positions (hash-set current-positions piece-id current-piece)))
+                  ;(displayln "Holaaaaaaaaaaaaa")
                   (set-node-children! current-node (append (node-children current-node)
                                                           (list (create-tree opposite-positions (hash-set current-positions piece-id current-move) (+ current-depth 1) total-depth)
                                                           )))
-                  (set! current-positions temp-current-positions)))))
-          (displayln current-node)))))
-          
+                  ;(displayln "ADIOOOOOOOOOOOOOOOOOOOOOS")
+                  (set! current-positions temp-current-positions)
+                  ;(displayln "TA LUEGOOOOOOOOOOO")
+                  )))
+          )current-node) current-node))
+       
 (define initial-AI-moves '( '("h9" "h7") '("h7" "g7") '("j9" "f7") '("i8" "g6") '("g9" "g8")))
 (define initial-move-counter 0)
 ;(define (create-tree board) "a")
+
 (define hash-black-pieces
     (hash
      0 "a0"
@@ -310,6 +319,7 @@
      17 "g7"
      18 "h8"
      19 "g8"))
+
 
 (define (position-piece board piece)
   (define-values (canvas-width canvas-height)
@@ -454,11 +464,11 @@
                     [editor board]))
 (send toplevel show #t)
 
+
 (define initial
   (string-append
    "Ba0Ba1Ba2Ba3Bb0Bb1Bb2Bc0Bc1Bd0"
    "Wj9Wj8Wj7Wj6Wi9Wi8Wi7Wh9Wh8Wg9"))
-
 
 (define (color-at-location location board)
     (let ((piece (piece-at-location board location)))
