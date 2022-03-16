@@ -160,9 +160,9 @@
           (begin
             (draw-chinese-checkers-board dc)
             (for ((location (in-list valid-move-locations)))
-              (highlight-square dc location #f "green"))
+              (highlight-square dc location #f "seagreen"))
             (when highlight-location
-              (highlight-square dc highlight-location #f "red")))
+              (highlight-square dc highlight-location #f "indianred")))
           ;; message is drawn after the snips
           (when message
             (display-message dc message))))
@@ -223,19 +223,17 @@
         ; check if the player won
         (cond [(check-win? 'black board '("j6" "i7" "h8" "g9" "j7" "i8" "h9") '("j9" "j8" "i9")) (set-message "Player Wins")]
               [(check-win? 'white board '("c0" "b1" "a2" "d0" "c1" "b2" "a3") '("a0" "a1" "b0")) (set-message "AI Wins")])
-        (set! initial-flag #f)
         (when (eq? turn 'white)
-          (when (< initial-move-counter 5)
+          (when (not (eq? initial-move-counter 5))
             (let ((positions (second (get-initial-move))))
               (send (piece-at-location board (first positions)) set-location (second positions))
-              (position-piece board (piece-at-location board (second positions))))
-            (set! initial-flag #t))
-          (when (not initial-flag)
-            (let ((positions (alpha-beta-search hash-black-pieces hash-white-pieces 2)))
-              (send (piece-at-location board (third positions)) set-location (fourth positions))
-              (position-piece board (piece-at-location board (fourth positions)))
-              (set! hash-white-pieces (hash-set hash-white-pieces (second positions) (fourth positions)))))
+              (position-piece board (piece-at-location board (second positions)))
+              ))
+          ;AI minmax, create tree
+          ;(let ((AI-move get-AI-move)));(first AI-move) = piece-id ; (second AI-move) = (original-position new-position)
+            
           (set! turn 'black)
+          ;(define (tree (create-tree board)))
          )
         )
       
@@ -260,8 +258,6 @@
 
     ))
 
-(define initial-flag #t)
-
 (define (get-initial-move)
   (if (empty? initial-AI-moves) #f
   (let ((current-move (car initial-AI-moves)))
@@ -269,61 +265,34 @@
   (set! initial-move-counter (+ initial-move-counter 1))
     current-move)))
 
-(define (alpha-beta-search black-pieces white-pieces total-depth)
-  (let ((result (max-value white-pieces black-pieces -10000 10000 0 total-depth)))
-    (fprintf (current-output-port)
-           "El mejor movimiento con valor ~a es mover la pieza ID: ~a que está en ~a a la posicion ~a" (first result) (second result) (third result) (fourth result))
-    (displayln "")
-    result))
 
-
-(define (max-value white-pieces black-pieces a b current-depth total-depth)
-  (cond
-    [(eq? current-depth total-depth) (list (random -500 500) #f #f #f)];En esta parte se llama al eval
-    [else
-    (define b-value -10000)
-    (define b-piece-id -1)
-    (define b-original-pos #f)
-    (define b-new-pos #f)
-    (for ([(piece-id current-piece) white-pieces])
-            (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset white-pieces black-pieces current-piece #t '() '()))))
+(define (create-tree current-positions opposite-positions current-depth total-depth)
+  ;(printf "current: ~a\n " current-positions)
+  ;(printf "oppol: ~a\n " opposite-positions)
+  ;(printf "cur-depth ~a\n " current-depth)
+  ;(printf "total-depth ~a\n " total-depth)
+  
+  (let ((current-node (node (if (hash-has-key? current-positions 1) current-positions opposite-positions)
+                            (if (hash-has-key? current-positions 1) opposite-positions current-positions) empty)))
+    (when (not (eq? current-depth total-depth))
+          (for ([(piece-id current-piece) current-positions])
+            (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset (if (hash-has-key? current-positions 1) opposite-positions current-positions)
+                                                                                         (if (hash-has-key? current-positions 1) current-positions opposite-positions) current-piece #t '() '()))))
               (for ([current-move possible-piece-moves])
-                (let ((result (min-value black-pieces (hash-set white-pieces piece-id current-move) a b (+ current-depth 1) total-depth)))
-                (when (> (first result) b-value)
-                  (set! b-value (first result))
-                  (set! b-piece-id piece-id)
-                  (set! b-original-pos current-piece)
-                  (set! b-new-pos current-move)))
-                  (when (>= b-value b)
-                    (list b-value b-piece-id b-original-pos b-new-pos))
-                      (set! a (max a b-value)))))
-    (list b-value b-piece-id b-original-pos b-new-pos)]))
-
-(define (min-value black-pieces white-pieces a b current-depth total-depth)
-  (cond
-    [(eq? current-depth total-depth) (list (random -500 500) #f #f #f)];En esta parte se llama al eval
-    [else
-    (define b-value 10000)
-    (define b-piece-id -1)
-    (define b-original-pos #f)
-    (define b-new-pos #f)
-    (for ([(piece-id current-piece) black-pieces])
-            (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset white-pieces black-pieces current-piece #t '() '()))))
-              (for ([current-move possible-piece-moves])
-                (let ((result (max-value white-pieces (hash-set black-pieces piece-id current-move) a b (+ current-depth 1) total-depth)))
-                (when (< (first result) b-value)
-                  (set! b-value (first result))
-                  (set! b-piece-id piece-id)
-                  (set! b-original-pos current-piece)
-                  (set! b-new-pos current-move)))
-                  (when (<= b-value a)
-                    (list b-value b-piece-id b-original-pos b-new-pos))
-                      (set! b (min b b-value)))))
-    (list b-value b-piece-id b-original-pos b-new-pos)]))
-
-
+                (let ((temp-current-positions (hash-set current-positions piece-id current-piece)))
+                  ;(displayln "Holaaaaaaaaaaaaa")
+                  (set-node-children! current-node (append (node-children current-node)
+                                                          (list (create-tree opposite-positions (hash-set current-positions piece-id current-move) (+ current-depth 1) total-depth)
+                                                          )))
+                  ;(displayln "ADIOOOOOOOOOOOOOOOOOOOOOS")
+                  (set! current-positions temp-current-positions)
+                  ;(displayln "TA LUEGOOOOOOOOOOO")
+                  )))
+          )current-node) current-node))
+       
 (define initial-AI-moves '( '("h9" "h7") '("h7" "g7") '("j9" "f7") '("i8" "g6") '("g9" "g8")))
 (define initial-move-counter 0)
+;(define (create-tree board) "a")
 
 (define hash-black-pieces
     (hash
@@ -389,17 +358,11 @@
    (list-ref '(#\a #\b #\c #\d #\e #\f #\g #\h #\i #\j) file)
    (list-ref '(#\9 #\8 #\7 #\6 #\5 #\4 #\3 #\2 #\1 #\0) rank)))
 
-#|
+
 (define (piece-id->location id white-pieces black-pieces)
   (if (and (< id 10) (>= id 0))
      (hash-ref black-pieces id)
      (hash-ref white-pieces id)))
-|#
-
-(define (black-positions hash-1 hash-2)
-  (if (hash-has-key? hash-1 1) hash-1 hash-2))
-(define (white-positions hash-1 hash-2)
-  (if (hash-has-key? hash-1 1) hash-2 hash-1))
 
 
 (define (xy->location board x y)
