@@ -78,8 +78,6 @@
     moves)))
 
 
-;---------------------------------------------------
-
 (define (valid-jump-by-offset nrank nfile moves board location first-call visited)
    (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((jump-candidate (rank-file->location nrank nfile))) 
@@ -89,8 +87,6 @@
                 moves)
   ))moves))
 
-;; use hashes instead of locations
-;; piece id instead of a single location
 
 (define (valid-moves-by-board-offset board location first-call moves visited)
   (define-values (rank file) (location->rank-file location))
@@ -231,7 +227,7 @@
               (position-piece board (piece-at-location board (second positions))))
             (set! initial-flag #t))
           (when (not initial-flag)
-            (let ((positions (alpha-beta-search hash-black-pieces hash-white-pieces 2)))
+            (let ((positions (alpha-beta-search hash-black-pieces hash-white-pieces 4)))
               (send (piece-at-location board (third positions)) set-location (fourth positions))
               (position-piece board (piece-at-location board (fourth positions)))
               (set! hash-white-pieces (hash-set hash-white-pieces (second positions) (fourth positions)))))
@@ -528,10 +524,6 @@
      (colors-at-locations (cdr locations) (cons (color-at-location (car locations) board) packed) board)))
 
 (define (check-win? color board diagonals trappeds)
-  ;agarrar diagonales
-  ;comparar diagonales
-  ;agarrar encerrados
-  ;comparar encerrados
   (if (equal? color 'black) (and (equal? (colors-at-locations diagonals '() board) first-diagonals-black-win)
        (member (colors-at-locations trappeds '() board) black-win-cases))
       (and (equal? (colors-at-locations diagonals '() board) first-diagonals-white-win)
