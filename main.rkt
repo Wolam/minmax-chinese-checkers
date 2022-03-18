@@ -51,15 +51,18 @@
 
 
 
+(define double-jumps 0)
+
 (define (valid-jump-by-hash-offset white-pieces black-pieces location nrank nfile moves first-call visited color)
    (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((jump-candidate (rank-file->location nrank nfile)))
                   (let ((piece (or (eq? (hash-ref hash-positions2 jump-candidate) 1) #f)))
-             (if (and (not piece) (not (member jump-candidate visited)))
-                 (cons jump-candidate (valid-moves-by-hashes-offset white-pieces black-pieces jump-candidate #f moves (cons jump-candidate visited) color))
-                moves)
-  ))moves))
-
+             (cond
+               [(and (not piece) (not (member jump-candidate visited))) 
+               (set! double-jumps (+ double-jumps 1))
+               (cons jump-candidate (valid-moves-by-hashes-offset white-pieces black-pieces jump-candidate #f moves (cons jump-candidate visited) color))]
+               [else moves])
+   ))moves))
 
 (define (valid-moves-by-hashes-offset white-pieces black-pieces location first-call moves visited color)
   (define-values (rank file) (location->rank-file location))
@@ -264,6 +267,100 @@
       (send (send this get-canvas) refresh))
 
     ))
+
+(define black-pieces-points
+    (hash
+    "a0" 100
+    "b0" 95 "a1" 95 
+    "c0" 90 "b1" 90 "a2" 90
+    "d0" 85 "c1" 85 "b2" 85 "a3" 85
+    "e0" 80 "d1" 80 "c2" 80 "b3" 80 "a4" 80
+    "f0" 75 "e1" 75 "d2" 75 "c3" 75 "b4" 75 "a5" 75 
+    "g0" 70 "f1" 70 "e2" 70 "d3" 70 "c4" 70 "b5" 70 "a6" 70
+    "h0" 65 "g1" 65 "f2" 65 "e3" 65 "d4" 65 "c5" 65 "b6" 65 "a7" 65
+    "i0" 60 "h1" 60 "g2" 60 "f3" 60 "e4" 60 "d5" 60 "c6" 60 "b7" 60 "a8" 60
+    "j0" 55 "i1" 55 "h2" 55 "g3" 55 "f4" 55 "e5" 55 "d6" 55 "c7" 55 "b8" 55 "a9" 55
+    "j1" 50 "i2" 50 "h3" 50 "g4" 50 "f5" 50 "e6" 50 "d7" 50 "c8" 50 "b9" 50 
+    "j2" 45 "i3" 45 "h4" 45 "g5" 45 "f6" 45 "e7" 45 "d8" 45 "c9" 45
+    "j3" 40 "i4" 40 "h5" 40 "g6" 40 "f7" 40 "e8" 40 "d9" 40
+    "j4" 35 "i5" 35 "h6" 35 "g7" 35 "f8" 35 "e9" 35
+    "j5" 30 "i6" 30 "h7" 30 "g8" 30 "f9" 30 
+    "j6" 25 "i7" 25 "h8" 25 "g9" 25
+    "j7" 20 "i8" 20 "h9" 20
+    "j8" 15 "i9" 15
+    "j9" 10 
+    ))
+
+(define white-pieces-points
+    (hash
+   "a0" 10
+    "b0" 15 "a1" 15 
+    "c0" 20 "b1" 20 "a2" 20
+    "d0" 25 "c1" 25 "b2" 25 "a3" 25
+    "e0" 30 "d1" 30 "c2" 30 "b3" 30 "a4" 30
+    "f0" 35 "e1" 35 "d2" 35 "c3" 35 "b4" 35 "a5" 35 
+    "g0" 40 "f1" 40 "e2" 40 "d3" 40 "c4" 40 "b5" 40 "a6" 40
+    "h0" 45 "g1" 45 "f2" 45 "e3" 45 "d4" 45 "c5" 45 "b6" 45 "a7" 45
+    "i0" 50 "h1" 50 "g2" 50 "f3" 50 "e4" 50 "d5" 50 "c6" 50 "b7" 50 "a8" 50
+    "j0" 55 "i1" 55 "h2" 55 "g3" 55 "f4" 55 "e5" 55 "d6" 55 "c7" 55 "b8" 55 "a9" 55
+    "j1" 60 "i2" 60 "h3" 60 "g4" 60 "f5" 60 "e6" 60 "d7" 60 "c8" 60 "b9" 60 
+    "j2" 65 "i3" 65 "h4" 65 "g5" 65 "f6" 65 "e7" 65 "d8" 65 "c9" 65
+    "j3" 70 "i4" 70 "h5" 70 "g6" 70 "f7" 70 "e8" 70 "d9" 70
+    "j4" 75 "i5" 75 "h6" 75 "g7" 75 "f8" 75 "e9" 75
+    "j5" 80 "i6" 80 "h7" 80 "g8" 80 "f9" 80 
+    "j6" 85 "i7" 85 "h8" 85 "g9" 85
+    "j7" 90 "i8" 90 "h9" 90
+    "j8" 95 "i9" 95
+    "j9" 100 
+    ))
+
+; (substring "a1" 0 1) = a
+; (substring "a1" 1 2) = 1
+(define white-distance-points
+    (hash
+     "j" 10
+     "i" 15
+     "h" 20
+     "g" 25
+     "f" 30
+     "e" 35
+     "d" 40
+     "c" 45
+     "b" 50
+     "a" 55
+      0  5
+      1  30 
+      2  30
+      3  30
+      4  25
+      5  20
+      6  15
+      7  10
+      8  10
+      9  5   ))
+
+(define black-distance-points
+    (hash
+     "a" 10
+     "b" 15
+     "c" 20
+     "d" 25
+     "e" 30
+     "f" 35
+     "g" 40
+     "h" 45
+     "i" 50
+     "j" 55
+      0  5
+      1  10
+      2  10
+      3  15
+      4  20
+      5  25
+      6  30
+      7  30
+      8  30
+      9  5   ))
 
 (define initial-flag #t)
 
