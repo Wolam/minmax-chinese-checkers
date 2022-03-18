@@ -1,7 +1,7 @@
 #lang racket/gui
 (require embedded-gui)
 
-(define depth-level 3)
+(define depth-level 2)
 (define chinese-checkers-piece-snip-class
   (make-object
    (class snip-class%
@@ -56,7 +56,7 @@
 (define (valid-jump-by-hash-offset white-pieces black-pieces location nrank nfile moves first-call visited color)
    (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((jump-candidate (rank-file->location nrank nfile)))
-                  (let ((piece (or (eq? (hash-ref hash-positions2 jump-candidate) 1) #f)))
+                  (let ((piece (hash-ref hash-positions2 jump-candidate)))
              (cond
                [(and (not piece) (not (member jump-candidate visited))) 
                (set! double-jumps (+ double-jumps 1))
@@ -73,7 +73,7 @@
     (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
     (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((candidate (rank-file->location nrank nfile)))
-          (let ((piece (or (eq? (hash-ref hash-positions2 candidate) 1) #f)))
+          (let ((piece (hash-ref hash-positions2 candidate)))
             (cond [(and (not piece) (not first-call)) moves]
                 [(and (not piece) first-call) (cons candidate moves)]
                 [else (valid-jump-by-hash-offset white-pieces black-pieces location (+ nrank roffset) (+ nfile foffset) moves first-call visited color)])))
@@ -222,8 +222,8 @@
             (send this remove target-piece)))
         (set! turn (if (eq? turn 'white) 'black 'white))
         (send piece set-location location)
-        (set! hash-positions2 (hash-set hash-positions2 (hash-ref hash-black-pieces (send piece get-id)) 0))
-        (set! hash-positions2 (hash-set hash-positions2 location 1))
+        (set! hash-positions2 (hash-set hash-positions2 (hash-ref hash-black-pieces (send piece get-id)) #f))
+        (set! hash-positions2 (hash-set hash-positions2 location #t))
         (set! hash-black-pieces (hash-set hash-black-pieces (send piece get-id) location))
         
         ; check if the player won
@@ -239,8 +239,8 @@
           (when (not initial-flag)
             (let ((positions (alpha-beta-search hash-black-pieces hash-white-pieces depth-level)))
               (set! hash-white-pieces (hash-set hash-white-pieces (send (piece-at-location board (second positions)) get-id) (third positions)))
-              (set! hash-positions2 (hash-set hash-positions2 (second positions) 0))
-              (set! hash-positions2 (hash-set hash-positions2 (third positions) 1))
+              (set! hash-positions2 (hash-set hash-positions2 (second positions) #f))
+              (set! hash-positions2 (hash-set hash-positions2 (third positions) #t))
               (send (piece-at-location board (second positions)) set-location (third positions))
               (position-piece board (piece-at-location board (third positions)))))
           (set! turn 'black)
@@ -417,16 +417,16 @@
 (define initial-move-counter 0)
 
 (define hash-positions2
-  (hash "a0" 1 "a1" 1 "a2" 1 "a3" 1 "a4" 0 "a5" 0 "a6" 0 "a7" 0 "a8" 0 "a9" 0
-        "b0" 1 "b1" 1 "b2" 1 "b3" 0 "b4" 0 "b5" 0 "b6" 0 "b7" 0 "b8" 0 "b9" 0
-        "c0" 1 "c1" 1 "c2" 0 "c3" 0 "c4" 0 "c5" 0 "c6" 0 "c7" 0 "c8" 0 "c9" 0
-        "d0" 1 "d1" 0 "d2" 0 "d3" 0 "d4" 0 "d5" 0 "d6" 0 "d7" 0 "d8" 0 "d9" 0
-        "e0" 0 "e1" 0 "e2" 0 "e3" 0 "e4" 0 "e5" 0 "e6" 0 "e7" 0 "e8" 0 "e9" 0
-        "f0" 0 "f1" 0 "f2" 0 "f3" 0 "f4" 0 "f5" 0 "f6" 0 "f7" 1 "f8" 0 "f9" 0
-        "g0" 0 "g1" 0 "g2" 0 "g3" 0 "g4" 0 "g5" 0 "g6" 1 "g7" 1 "g8" 1 "g9" 0
-        "h0" 0 "h1" 0 "h2" 0 "h3" 0 "h4" 0 "h5" 0 "h6" 0 "h7" 0 "h8" 1 "h9" 0
-        "i0" 0 "i1" 0 "i2" 0 "i3" 0 "i4" 0 "i5" 0 "i6" 0 "i7" 1 "i8" 0 "i9" 1
-        "j0" 0 "j1" 0 "j2" 0 "j3" 0 "j4" 0 "j5" 0 "j6" 1 "j7" 1 "j8" 1 "j9" 0))
+  (hash "a0" #t "a1" #t "a2" #t "a3" #t "a4" #f "a5" #f "a6" #f "a7" #f "a8" #f "a9" #f
+        "b0" #t "b1" #t "b2" #t "b3" #f "b4" #f "b5" #f "b6" #f "b7" #f "b8" #f "b9" #f
+        "c0" #t "c1" #t "c2" #f "c3" #f "c4" #f "c5" #f "c6" #f "c7" #f "c8" #f "c9" #f
+        "d0" #t "d1" #f "d2" #f "d3" #f "d4" #f "d5" #f "d6" #f "d7" #f "d8" #f "d9" #f
+        "e0" #f "e1" #f "e2" #f "e3" #f "e4" #f "e5" #f "e6" #f "e7" #f "e8" #f "e9" #f
+        "f0" #f "f1" #f "f2" #f "f3" #f "f4" #f "f5" #f "f6" #f "f7" #t "f8" #f "f9" #f
+        "g0" #f "g1" #f "g2" #f "g3" #f "g4" #f "g5" #f "g6" #t "g7" #t "g8" #t "g9" #f
+        "h0" #f "h1" #f "h2" #f "h3" #f "h4" #f "h5" #f "h6" #f "h7" #f "h8" #t "h9" #f
+        "i0" #f "i1" #f "i2" #f "i3" #f "i4" #f "i5" #f "i6" #f "i7" #t "i8" #f "i9" #t
+        "j0" #f "j1" #f "j2" #f "j3" #f "j4" #f "j5" #f "j6" #t "j7" #t "j8" #t "j9" #f))
 
 (define hash-black-pieces
     (hash
