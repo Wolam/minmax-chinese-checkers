@@ -234,7 +234,7 @@
             (set! initial-flag #t))
           (when (not initial-flag)
             (let ((positions (alpha-beta-search hash-black-pieces hash-white-pieces depth-level)))
-              ;(printf "positions: ~a\n" positions)
+              (printf "positions: ~a\n" positions)
               (set! hash-white-pieces (hash-set hash-white-pieces (send (piece-at-location board (second positions)) get-id) (third positions)))
               (set! hash-positions2 (hash-set hash-positions2 (second positions) #f))
               (set! hash-positions2 (hash-set hash-positions2 (car(third positions)) #t))
@@ -264,6 +264,8 @@
       (send (send this get-canvas) refresh))
 
     ))
+
+
 
 (define black-pieces-points
     (hash
@@ -325,16 +327,16 @@
      "c" 45
      "b" 50
      "a" 55
-      0  5
-      1  30 
-      2  30
-      3  30
-      4  25
-      5  20
-      6  15
-      7  10
-      8  10
-      9  5   ))
+      "0"  5
+      "1"  30 
+      "2"  30
+      "3"  30
+      "4"  25
+      "5"  20
+      "6"  15
+      "7"  10
+      "8"  10
+      "9"  5   ))
 
 (define black-distance-points
     (hash
@@ -348,16 +350,16 @@
      "h" 45
      "i" 50
      "j" 55
-      0  5
-      1  10
-      2  10
-      3  15
-      4  20
-      5  25
-      6  30
-      7  30
-      8  30
-      9  5   ))
+     "0" 5
+     "1" 10
+      "2"  10
+      "3"  15
+      "4"  20
+      "5"  25
+      "6"  30
+      "7"  30
+      "8"  30
+      "9"  5   ))
 
 (define initial-flag #t)
 
@@ -368,8 +370,29 @@
   (set! initial-move-counter (+ initial-move-counter 1))
     current-move)))
 
+
+(define (sum-black-points blacks)
+  (let ((sum 0)) 
+  (for ([(piece-id pos-and-jumps) blacks])
+   ;; (displayln (hash-ref black-pieces-points (car pos-and-jumps)))
+     (set! sum (+ sum (hash-ref black-pieces-points (car pos-and-jumps))
+                      (hash-ref black-distance-points (substring (car pos-and-jumps) 0 1))
+                      (hash-ref black-distance-points (substring (car pos-and-jumps) 1 2)))))
+     ;(displayln sum))
+    sum))
+
+(define (sum-white-points whites)
+  (let ((sum 0)) 
+  (for ([(piece-id pos-and-jumps) whites])
+    ;(displayln (hash-ref white-pieces-points (car pos-and-jumps)))
+     (set! sum (+ sum (hash-ref white-pieces-points (car pos-and-jumps))
+                      (hash-ref white-distance-points (substring (car pos-and-jumps) 0 1))
+                      (hash-ref white-distance-points (substring (car pos-and-jumps) 1 2)))))
+    sum))
+
+
 (define (eval white-pieces black-pieces)
-  (random -500 500))
+  (+ (sum-black-points black-pieces) (sum-white-points white-pieces)))
 
 (define (alpha-beta-search black-pieces white-pieces total-depth)
   (max-value white-pieces black-pieces -10000 10000 0 total-depth))
@@ -425,6 +448,7 @@
         "h0" #f "h1" #f "h2" #f "h3" #f "h4" #f "h5" #f "h6" #f "h7" #f "h8" #t "h9" #f
         "i0" #f "i1" #f "i2" #f "i3" #f "i4" #f "i5" #f "i6" #f "i7" #t "i8" #f "i9" #t
         "j0" #f "j1" #f "j2" #f "j3" #f "j4" #f "j5" #f "j6" #t "j7" #t "j8" #t "j9" #f))
+
 
 (define hash-black-pieces
     (hash
