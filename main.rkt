@@ -50,33 +50,29 @@
 (define (valid-file? file) (and (>= file 0) (< file 10)))
 
 
-
-(define double-jumps 0)
-
-(define (valid-jump-by-hash-offset white-pieces black-pieces location nrank nfile moves first-call visited color)
+(define (valid-jump-by-hash-offset white-pieces black-pieces location nrank nfile moves first-call visited color double-jumps)
    (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((jump-candidate (rank-file->location nrank nfile)))
                   (let ((piece (hash-ref hash-positions2 jump-candidate)))
              (cond
                [(and (not piece) (not (member jump-candidate visited))) 
-               (set! double-jumps (+ double-jumps 1))
-               (cons jump-candidate (valid-moves-by-hashes-offset white-pieces black-pieces jump-candidate #f moves (cons jump-candidate visited) color))]
+               (cons (cons jump-candidate double-jumps) (valid-moves-by-hashes-offset white-pieces black-pieces jump-candidate #f moves (cons jump-candidate visited) color (+ double-jumps 10)))]
                [else moves])
    ))moves))
 
-(define (valid-moves-by-hashes-offset white-pieces black-pieces location first-call moves visited color)
+(define (valid-moves-by-hashes-offset white-pieces black-pieces location first-call moves visited color double-jumps)
   (define-values (rank file) (location->rank-file location))
   (for/fold ([moves moves])
             ([offset (in-list (get-piece-offsets color))])
-
+    
     (match-define (list roffset foffset) offset)
     (define-values (nrank nfile) (values (+ rank roffset) (+ file foffset)))
     (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((candidate (rank-file->location nrank nfile)))
           (let ((piece (hash-ref hash-positions2 candidate)))
             (cond [(and (not piece) (not first-call)) moves]
-                [(and (not piece) first-call) (cons candidate moves)]
-                [else (valid-jump-by-hash-offset white-pieces black-pieces location (+ nrank roffset) (+ nfile foffset) moves first-call visited color)])))
+                [(and (not piece) first-call) (cons (cons candidate double-jumps) moves)]
+                [else (valid-jump-by-hash-offset white-pieces black-pieces location (+ nrank roffset) (+ nfile foffset) moves first-call visited color double-jumps)])))
     moves)))
 
 (define (valid-jump-by-offset nrank nfile moves board location first-call visited)
@@ -224,7 +220,7 @@
         (send piece set-location location)
         (set! hash-positions2 (hash-set hash-positions2 (hash-ref hash-black-pieces (send piece get-id)) #f))
         (set! hash-positions2 (hash-set hash-positions2 location #t))
-        (set! hash-black-pieces (hash-set hash-black-pieces (send piece get-id) location))
+        (set! hash-black-pieces (hash-set hash-black-pieces (send piece get-id) (list location 0)))
         
         ; check if the player won
         (cond [(check-win? 'black board '("j6" "i7" "h8" "g9" "j7" "i8" "h9") '("j9" "j8" "i9")) (set-message "Player Wins")]
@@ -238,11 +234,12 @@
             (set! initial-flag #t))
           (when (not initial-flag)
             (let ((positions (alpha-beta-search hash-black-pieces hash-white-pieces depth-level)))
+              ;(printf "positions: ~a\n" positions)
               (set! hash-white-pieces (hash-set hash-white-pieces (send (piece-at-location board (second positions)) get-id) (third positions)))
               (set! hash-positions2 (hash-set hash-positions2 (second positions) #f))
-              (set! hash-positions2 (hash-set hash-positions2 (third positions) #t))
-              (send (piece-at-location board (second positions)) set-location (third positions))
-              (position-piece board (piece-at-location board (third positions)))))
+              (set! hash-positions2 (hash-set hash-positions2 (car(third positions)) #t))
+              (send (piece-at-location board (second positions)) set-location (car(third positions)))
+              (position-piece board (piece-at-location board (car(third positions))))))
           (set! turn 'black)
          )
         )
@@ -386,23 +383,24 @@
     (define b-original-pos #f)
     (define b-new-pos #f)
     (for ([(piece-id current-piece) white-pieces])
-            (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset white-pieces black-pieces current-piece #t '() '() 'white))))
+            (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset white-pieces black-pieces (car current-piece) #t '() '() 'white 0))))
               (for ([current-move possible-piece-moves])
                 (let ((result (min-value black-pieces (hash-set white-pieces piece-id current-move) a b current-depth total-depth)))
                 (when (> result b-value)
                   (set! b-value result)
                   (when (eq? current-depth 0)
-                  (set! b-original-pos current-piece)
+                  (set! b-original-pos (car current-piece))
                   (set! b-new-pos current-move))
                   (when (>= b-value b)
                     (list b-value b-original-pos b-new-pos))
                       (set! a (max a b-value)))))))
     (list b-value b-original-pos b-new-pos)]))
 
+
 (define (min-value black-pieces white-pieces a b current-depth total-depth)
     (define b-value 10000)
     (for ([(piece-id current-piece) black-pieces])
-            (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset white-pieces black-pieces current-piece #t '() '() 'black))))
+            (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset white-pieces black-pieces (car current-piece) #t '() '() 'black 0))))
               (for ([current-move possible-piece-moves])
                 (let ((result (max-value white-pieces (hash-set black-pieces piece-id current-move) a b (+ current-depth 1) total-depth)))
                 (when (< (first result) b-value)
@@ -430,29 +428,29 @@
 
 (define hash-black-pieces
     (hash
-     0 "a0"
-     1 "a1"
-     2 "a2"
-     3 "a3"
-     4 "b0"
-     5 "b1"
-     6 "b2"
-     7 "c0"
-     8 "c1"
-     9 "d0"))
+     0 '("a0" 0)
+     1 '("a1" 0)
+     2 '("a2" 0)
+     3 '("a3" 0)
+     4 '("b0" 0)
+     5 '("b1" 0)
+     6 '("b2" 0)
+     7 '("c0" 0)
+     8 '("c1" 0)
+     9 '("d0" 0)))
 
 (define hash-white-pieces
     (hash
-     10 "f7"
-     11 "j8"
-     12 "j7"
-     13 "j6"
-     14 "i9"
-     15 "g6"
-     16 "i7"
-     17 "g7"
-     18 "h8"
-     19 "g8"))
+     10 '("f7" 0)
+     11 '("j8" 0)
+     12 '("j7" 0)
+     13 '("j6" 0)
+     14 '("i9" 0)
+     15 '("g6" 0)
+     16 '("i7" 0)
+     17 '("g7" 0)
+     18 '("h8" 0)
+     19 '("g8" 0)))
 
 
 (define (position-piece board piece)
@@ -461,6 +459,7 @@
       (send c get-size)))
   (define-values (square-width square-height)
     (values (/ canvas-width 10) (/ canvas-height 10)))
+  
   (define-values (rank file)
     (location->rank-file (send piece get-location)))
   (define-values (square-x square-y)
@@ -471,7 +470,7 @@
         (+ square-x (/ (- square-width piece-width) 2))
         (+ square-y (/ (- square-height piece-height) 2))))
 
-(define (location->rank-file location)
+(define (location->rank-file location )
   (unless (and (string? location) (= (string-length location) 2))
     (raise-argument-error 'location "valid chinese-checkers position a0 .. j9" location))
   (define file
@@ -609,16 +608,7 @@
 (define letters '("a" "b" "c" "d" "e" "f" "g" "h" "i" "j"))
 (define numbers '("0" "1" "2" "3" "4" "5" "6" "7" "8" "9"))
 
-#|
-(define hash-positions
-  (hash
-   (for ([letter letters])
-     (for ([number numbers])
-     (string-append letter number) #f))))
-|#
 
-
-  
 (define initial
   (string-append
    "Ba0Ba1Ba2Ba3Bb0Bb1Bb2Bc0Bc1Bd0"
