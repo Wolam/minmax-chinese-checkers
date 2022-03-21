@@ -56,7 +56,7 @@
                   (let ((piece (hash-ref hash-positions2 jump-candidate)))
              (cond
                [(and (not piece) (not (member jump-candidate visited))) 
-               (cons (cons jump-candidate double-jumps) (valid-moves-by-hashes-offset white-pieces black-pieces jump-candidate #f moves (cons jump-candidate visited) color (+ double-jumps 10)))]
+               (cons (cons jump-candidate double-jumps) (valid-moves-by-hashes-offset white-pieces black-pieces jump-candidate #f moves (cons jump-candidate visited) color (+ double-jumps 100)))]
                [else moves])
    ))moves))
 
@@ -101,9 +101,12 @@
 
 (define piece-offsets '((-1 -1) (-1 0) (0 1) (0 -1) (1 0) (1 1)))
 
+;(-1 0) (0 1)
+; (0 -1) (1 0)
+
 (define (get-piece-offsets color)
-  (if (eq? color 'black) '((-1 0) (0 1))
-      '((0 -1) (1 0))))
+  (if (eq? color 'black) '((-1 0) (0 1) (-1 -1))
+      '((0 -1) (1 0) (1 1))))
 
 ;(0 -1) (1 0) N
 ;(-1 0) (0 1) W
@@ -220,7 +223,7 @@
         (send piece set-location location)
         (set! hash-positions2 (hash-set hash-positions2 (hash-ref hash-black-pieces (send piece get-id)) #f))
         (set! hash-positions2 (hash-set hash-positions2 location #t))
-        (set! hash-black-pieces (hash-set hash-black-pieces (send piece get-id) (list location 0)))
+        (set! hash-black-pieces (hash-set hash-black-pieces (send piece get-id) (cons location 0)))
         
         ; check if the player won
         (cond [(check-win? 'black board '("j6" "i7" "h8" "g9" "j7" "i8" "h9") '("j9" "j8" "i9")) (set-message "Player Wins")]
@@ -273,17 +276,17 @@
     "b0" 95 "a1" 95 
     "c0" 90 "b1" 90 "a2" 90
     "d0" 85 "c1" 85 "b2" 85 "a3" 85
-    "e0" 80 "d1" 80 "c2" 80 "b3" 80 "a4" 80
-    "f0" 75 "e1" 75 "d2" 75 "c3" 75 "b4" 75 "a5" 75 
-    "g0" 70 "f1" 70 "e2" 70 "d3" 70 "c4" 70 "b5" 70 "a6" 70
-    "h0" 65 "g1" 65 "f2" 65 "e3" 65 "d4" 65 "c5" 65 "b6" 65 "a7" 65
-    "i0" 60 "h1" 60 "g2" 60 "f3" 60 "e4" 60 "d5" 60 "c6" 60 "b7" 60 "a8" 60
-    "j0" 55 "i1" 55 "h2" 55 "g3" 55 "f4" 55 "e5" 55 "d6" 55 "c7" 55 "b8" 55 "a9" 55
-    "j1" 50 "i2" 50 "h3" 50 "g4" 50 "f5" 50 "e6" 50 "d7" 50 "c8" 50 "b9" 50 
-    "j2" 45 "i3" 45 "h4" 45 "g5" 45 "f6" 45 "e7" 45 "d8" 45 "c9" 45
-    "j3" 40 "i4" 40 "h5" 40 "g6" 40 "f7" 40 "e8" 40 "d9" 40
-    "j4" 35 "i5" 35 "h6" 35 "g7" 35 "f8" 35 "e9" 35
-    "j5" 30 "i6" 30 "h7" 30 "g8" 30 "f9" 30 
+    "e0" 10 "d1" 80 "c2" 80 "b3" 80 "a4" 10
+    "f0" 10 "e1" 75 "d2" 75 "c3" 75 "b4" 75 "a5" 10 
+    "g0" 10 "f1" 10 "e2" 70 "d3" 70 "c4" 70 "b5" 10 "a6" 30
+    "h0" 10 "g1" 10 "f2" 65 "e3" 65 "d4" 65 "c5" 65 "b6" 10 "a7" 10
+    "i0" 10 "h1" 10 "g2" 10 "f3" 60 "e4" 60 "d5" 60 "c6" 10 "b7" 10 "a8" 10
+    "j0" 10 "i1" 10 "h2" 10 "g3" 55 "f4" 55 "e5" 55 "d6" 55 "c7" 10 "b8" 10 "a9" 10
+    "j1" 10 "i2" 10 "h3" 10 "g4" 50 "f5" 50 "e6" 50 "d7" 10 "c8" 10 "b9" 10 
+    "j2" 10 "i3" 10 "h4" 45 "g5" 45 "f6" 45 "e7" 45 "d8" 10 "c9" 10
+    "j3" 10 "i4" 10 "h5" 40 "g6" 40 "f7" 40 "e8" 10 "d9" 10
+    "j4" 10 "i5" 35 "h6" 35 "g7" 35 "f8" 35 "e9" 10
+    "j5" 10 "i6" 30 "h7" 30 "g8" 30 "f9" 10 
     "j6" 25 "i7" 25 "h8" 25 "g9" 25
     "j7" 20 "i8" 20 "h9" 20
     "j8" 15 "i9" 15
@@ -296,17 +299,17 @@
     "b0" 15 "a1" 15 
     "c0" 20 "b1" 20 "a2" 20
     "d0" 25 "c1" 25 "b2" 25 "a3" 25
-    "e0" 30 "d1" 30 "c2" 30 "b3" 30 "a4" 30
-    "f0" 35 "e1" 35 "d2" 35 "c3" 35 "b4" 35 "a5" 35 
-    "g0" 40 "f1" 40 "e2" 40 "d3" 40 "c4" 40 "b5" 40 "a6" 40
-    "h0" 45 "g1" 45 "f2" 45 "e3" 45 "d4" 45 "c5" 45 "b6" 45 "a7" 45
-    "i0" 50 "h1" 50 "g2" 50 "f3" 50 "e4" 50 "d5" 50 "c6" 50 "b7" 50 "a8" 50
-    "j0" 55 "i1" 55 "h2" 55 "g3" 55 "f4" 55 "e5" 55 "d6" 55 "c7" 55 "b8" 55 "a9" 55
-    "j1" 60 "i2" 60 "h3" 60 "g4" 60 "f5" 60 "e6" 60 "d7" 60 "c8" 60 "b9" 60 
-    "j2" 65 "i3" 65 "h4" 65 "g5" 65 "f6" 65 "e7" 65 "d8" 65 "c9" 65
-    "j3" 70 "i4" 70 "h5" 70 "g6" 70 "f7" 70 "e8" 70 "d9" 70
-    "j4" 75 "i5" 75 "h6" 75 "g7" 75 "f8" 75 "e9" 75
-    "j5" 80 "i6" 80 "h7" 80 "g8" 80 "f9" 80 
+    "e0" 10 "d1" 30 "c2" 30 "b3" 30 "a4" 10
+    "f0" 10 "e1" 35 "d2" 35 "c3" 35 "b4" 35 "a5" 10 
+    "g0" 10 "f1" 10 "e2" 40 "d3" 40 "c4" 40 "b5" 10 "a6" 15
+    "h0" 10 "g1" 10 "f2" 45 "e3" 45 "d4" 45 "c5" 45 "b6" 10 "a7" 10
+    "i0" 10 "h1" 10 "g2" 10 "f3" 50 "e4" 50 "d5" 50 "c6" 10 "b7" 10 "a8" 10
+    "j0" 10 "i1" 10 "h2" 10 "g3" 55 "f4" 55 "e5" 55 "d6" 55 "c7" 10 "b8" 10 "a9" 10
+    "j1" 10 "i2" 10 "h3" 10 "g4" 60 "f5" 60 "e6" 60 "d7" 10 "c8" 10 "b9" 10 
+    "j2" 10 "i3" 10 "h4" 65 "g5" 65 "f6" 65 "e7" 65 "d8" 10 "c9" 10
+    "j3" 10 "i4" 10 "h5" 70 "g6" 70 "f7" 70 "e8" 10 "d9" 10
+    "j4" 10 "i5" 75 "h6" 75 "g7" 75 "f8" 75 "e9" 10
+    "j5" 10 "i6" 80 "h7" 80 "g8" 80 "f9" 10 
     "j6" 85 "i7" 85 "h8" 85 "g9" 85
     "j7" 90 "i8" 90 "h9" 90
     "j8" 95 "i9" 95
@@ -371,28 +374,33 @@
     current-move)))
 
 
+    ; 0 '("a0" 0)
+
 (define (sum-black-points blacks)
   (let ((sum 0)) 
   (for ([(piece-id pos-and-jumps) blacks])
-   ;; (displayln (hash-ref black-pieces-points (car pos-and-jumps)))
+   ;(displayln (hash-ref black-pieces-points (car pos-and-jumps))
+    ;(displayln (cdr pos-and-jumps))
      (set! sum (+ sum (hash-ref black-pieces-points (car pos-and-jumps))
                       (hash-ref black-distance-points (substring (car pos-and-jumps) 0 1))
-                      (hash-ref black-distance-points (substring (car pos-and-jumps) 1 2)))))
+                      (hash-ref black-distance-points (substring (car pos-and-jumps) 1 2))
+                      )))
      ;(displayln sum))
     sum))
 
 (define (sum-white-points whites)
   (let ((sum 0)) 
   (for ([(piece-id pos-and-jumps) whites])
+    ;(displayln (cdr pos-and-jumps))
     ;(displayln (hash-ref white-pieces-points (car pos-and-jumps)))
      (set! sum (+ sum (hash-ref white-pieces-points (car pos-and-jumps))
                       (hash-ref white-distance-points (substring (car pos-and-jumps) 0 1))
-                      (hash-ref white-distance-points (substring (car pos-and-jumps) 1 2)))))
+                      (hash-ref white-distance-points (substring (car pos-and-jumps) 1 2))
+                      )))
     sum))
 
-
 (define (eval white-pieces black-pieces)
-  (+ (sum-black-points black-pieces) (sum-white-points white-pieces)))
+  (- (sum-white-points white-pieces) (sum-black-points black-pieces)))
 
 (define (alpha-beta-search black-pieces white-pieces total-depth)
   (max-value white-pieces black-pieces -10000 10000 0 total-depth))
@@ -452,29 +460,29 @@
 
 (define hash-black-pieces
     (hash
-     0 '("a0" 0)
-     1 '("a1" 0)
-     2 '("a2" 0)
-     3 '("a3" 0)
-     4 '("b0" 0)
-     5 '("b1" 0)
-     6 '("b2" 0)
-     7 '("c0" 0)
-     8 '("c1" 0)
-     9 '("d0" 0)))
+     0 '("a0" . 0)
+     1 '("a1" . 0)
+     2 '("a2" . 0)
+     3 '("a3" . 0)
+     4 '("b0" . 0)
+     5 '("b1" . 0)
+     6 '("b2" . 0)
+     7 '("c0" . 0)
+     8 '("c1" . 0)
+     9 '("d0" . 0)))
 
 (define hash-white-pieces
     (hash
-     10 '("f7" 0)
-     11 '("j8" 0)
-     12 '("j7" 0)
-     13 '("j6" 0)
-     14 '("i9" 0)
-     15 '("g6" 0)
-     16 '("i7" 0)
-     17 '("g7" 0)
-     18 '("h8" 0)
-     19 '("g8" 0)))
+     10 '("f7" . 0)
+     11 '("j8" . 0)
+     12 '("j7" . 0)
+     13 '("j6" . 0)
+     14 '("i9" . 0)
+     15 '("g6" . 0)
+     16 '("i7" . 0)
+     17 '("g7" . 0)
+     18 '("h8" . 0)
+     19 '("g8" . 0)))
 
 
 (define (position-piece board piece)
