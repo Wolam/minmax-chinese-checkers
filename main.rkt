@@ -56,7 +56,7 @@
                   (let ((piece (hash-ref hash-positions2 jump-candidate)))
              (cond
                [(and (not piece) (not (member jump-candidate visited))) 
-               (cons (cons jump-candidate double-jumps) (valid-moves-by-hashes-offset white-pieces black-pieces jump-candidate #f moves (cons jump-candidate visited) color (+ double-jumps 100)))]
+               (cons (cons jump-candidate double-jumps) (valid-moves-by-hashes-offset white-pieces black-pieces jump-candidate #f moves (cons jump-candidate visited) color (+ double-jumps 5)))]
                [else moves])
    ))moves))
 
@@ -272,48 +272,48 @@
 
 (define black-pieces-points
     (hash
-    "a0" 100
-    "b0" 95 "a1" 95 
-    "c0" 90 "b1" 90 "a2" 90
-    "d0" 85 "c1" 85 "b2" 85 "a3" 85
-    "e0" 10 "d1" 80 "c2" 80 "b3" 80 "a4" 10
-    "f0" 10 "e1" 75 "d2" 75 "c3" 75 "b4" 75 "a5" 10 
-    "g0" 10 "f1" 10 "e2" 70 "d3" 70 "c4" 70 "b5" 10 "a6" 30
-    "h0" 10 "g1" 10 "f2" 65 "e3" 65 "d4" 65 "c5" 65 "b6" 10 "a7" 10
-    "i0" 10 "h1" 10 "g2" 10 "f3" 60 "e4" 60 "d5" 60 "c6" 10 "b7" 10 "a8" 10
-    "j0" 10 "i1" 10 "h2" 10 "g3" 55 "f4" 55 "e5" 55 "d6" 55 "c7" 10 "b8" 10 "a9" 10
-    "j1" 10 "i2" 10 "h3" 10 "g4" 50 "f5" 50 "e6" 50 "d7" 10 "c8" 10 "b9" 10 
-    "j2" 10 "i3" 10 "h4" 45 "g5" 45 "f6" 45 "e7" 45 "d8" 10 "c9" 10
-    "j3" 10 "i4" 10 "h5" 40 "g6" 40 "f7" 40 "e8" 10 "d9" 10
-    "j4" 10 "i5" 35 "h6" 35 "g7" 35 "f8" 35 "e9" 10
-    "j5" 10 "i6" 30 "h7" 30 "g8" 30 "f9" 10 
-    "j6" 25 "i7" 25 "h8" 25 "g9" 25
-    "j7" 20 "i8" 20 "h9" 20
-    "j8" 15 "i9" 15
-    "j9" 10 
+    "a0" 1
+    "b0" 2 "a1" 2 
+    "c0" 3 "b1" 3 "a2" 3
+    "d0" 4 "c1" 4 "b2" 4 "a3" 4
+    "e0" 5 "d1" 5 "c2" 5 "b3" 5 "a4" 5
+    "f0" 6 "e1" 6 "d2" 6 "c3" 6 "b4" 6 "a5" 6 
+    "g0" 7 "f1" 7 "e2" 7 "d3" 7 "c4" 7 "b5" 7 "a6" 7
+    "h0" 8 "g1" 8 "f2" 8 "e3" 8 "d4" 8 "c5" 8 "b6" 8 "a7" 8
+    "i0" 9 "h1" 9 "g2" 9 "f3" 9 "e4" 9 "d5" 9 "c6" 9 "b7" 9 "a8" 9
+    "j0" 10 "i1" 10 "h2" 10 "g3" 10 "f4" 10 "e5" 10 "d6" 10 "c7" 10 "b8" 10 "a9" 10
+    "j1" 11 "i2" 11 "h3" 11 "g4" 11 "f5" 11 "e6" 11 "d7" 11 "c8" 11 "b9" 11 
+    "j2" 12 "i3" 12 "h4" 12 "g5" 12 "f6" 12 "e7" 12 "d8" 12 "c9" 12
+    "j3" 13 "i4" 13 "h5" 13 "g6" 13 "f7" 13 "e8" 13 "d9" 13
+    "j4" 14 "i5" 14 "h6" 14 "g7" 14 "f8" 14 "e9" 14
+    "j5" 15 "i6" 15 "h7" 15 "g8" 15 "f9" 15 
+    "j6" 16 "i7" 16 "h8" 16 "g9" 16
+    "j7" 17 "i8" 17 "h9" 17
+    "j8" 18 "i9" 18
+    "j9" 19 
     ))
 
 (define white-pieces-points
     (hash
-   "a0" 10
-    "b0" 15 "a1" 15 
-    "c0" 20 "b1" 20 "a2" 20
-    "d0" 25 "c1" 25 "b2" 25 "a3" 25
-    "e0" 10 "d1" 30 "c2" 30 "b3" 30 "a4" 10
-    "f0" 10 "e1" 35 "d2" 35 "c3" 35 "b4" 35 "a5" 10 
-    "g0" 10 "f1" 10 "e2" 40 "d3" 40 "c4" 40 "b5" 10 "a6" 15
-    "h0" 10 "g1" 10 "f2" 45 "e3" 45 "d4" 45 "c5" 45 "b6" 10 "a7" 10
-    "i0" 10 "h1" 10 "g2" 10 "f3" 50 "e4" 50 "d5" 50 "c6" 10 "b7" 10 "a8" 10
-    "j0" 10 "i1" 10 "h2" 10 "g3" 55 "f4" 55 "e5" 55 "d6" 55 "c7" 10 "b8" 10 "a9" 10
-    "j1" 10 "i2" 10 "h3" 10 "g4" 60 "f5" 60 "e6" 60 "d7" 10 "c8" 10 "b9" 10 
-    "j2" 10 "i3" 10 "h4" 65 "g5" 65 "f6" 65 "e7" 65 "d8" 10 "c9" 10
-    "j3" 10 "i4" 10 "h5" 70 "g6" 70 "f7" 70 "e8" 10 "d9" 10
-    "j4" 10 "i5" 75 "h6" 75 "g7" 75 "f8" 75 "e9" 10
-    "j5" 10 "i6" 80 "h7" 80 "g8" 80 "f9" 10 
-    "j6" 85 "i7" 85 "h8" 85 "g9" 85
-    "j7" 90 "i8" 90 "h9" 90
-    "j8" 95 "i9" 95
-    "j9" 100 
+   "a0" 19
+    "b0" 18 "a1" 18 
+    "c0" 17 "b1" 17 "a2" 17
+    "d0" 16 "c1" 16 "b2" 16 "a3" 16
+    "e0" 15 "d1" 15 "c2" 15 "b3" 15 "a4" 15
+    "f0" 14 "e1" 14 "d2" 14 "c3" 14 "b4" 14 "a5" 14 
+    "g0" 13 "f1" 13 "e2" 13 "d3" 13 "c4" 13 "b5" 13 "a6" 13
+    "h0" 12 "g1" 12 "f2" 12 "e3" 12 "d4" 12 "c5" 12 "b6" 12 "a7" 12
+    "i0" 11 "h1" 11 "g2" 11 "f3" 11 "e4" 11 "d5" 11 "c6" 11 "b7" 11 "a8" 11
+    "j0" 10 "i1" 10 "h2" 10 "g3" 10 "f4" 10 "e5" 10 "d6" 10 "c7" 10 "b8" 10 "a9" 10
+    "j1" 9 "i2" 9 "h3" 9 "g4" 9 "f5" 9 "e6" 9 "d7" 9 "c8" 9 "b9" 9 
+    "j2" 8 "i3" 8 "h4" 8 "g5" 8 "f6" 8 "e7" 8 "d8" 8 "c9" 8
+    "j3" 7 "i4" 7 "h5" 7 "g6" 7 "f7" 7 "e8" 7 "d9" 7
+    "j4" 6 "i5" 6 "h6" 6 "g7" 6 "f8" 6 "e9" 6
+    "j5" 5 "i6" 5 "h7" 5 "g8" 5 "f9" 5 
+    "j6" 4 "i7" 4 "h8" 4 "g9" 4
+    "j7" 3 "i8" 3 "h9" 3
+    "j8" 2 "i9" 2
+    "j9" 1 
     ))
 
 ; (substring "a1" 0 1) = a
@@ -382,8 +382,8 @@
    ;(displayln (hash-ref black-pieces-points (car pos-and-jumps))
     ;(displayln (cdr pos-and-jumps))
      (set! sum (+ sum (hash-ref black-pieces-points (car pos-and-jumps))
-                      (hash-ref black-distance-points (substring (car pos-and-jumps) 0 1))
-                      (hash-ref black-distance-points (substring (car pos-and-jumps) 1 2))
+                      ;(hash-ref black-distance-points (substring (car pos-and-jumps) 0 1))
+                      ;(hash-ref black-distance-points (substring (car pos-and-jumps) 1 2))
                       )))
      ;(displayln sum))
     sum))
@@ -394,8 +394,8 @@
     ;(displayln (cdr pos-and-jumps))
     ;(displayln (hash-ref white-pieces-points (car pos-and-jumps)))
      (set! sum (+ sum (hash-ref white-pieces-points (car pos-and-jumps))
-                      (hash-ref white-distance-points (substring (car pos-and-jumps) 0 1))
-                      (hash-ref white-distance-points (substring (car pos-and-jumps) 1 2))
+                      ;(hash-ref white-distance-points (substring (car pos-and-jumps) 0 1))
+                      ;(hash-ref white-distance-points (substring (car pos-and-jumps) 1 2))
                       )))
     sum))
 
