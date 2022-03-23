@@ -2,14 +2,21 @@
 (require embedded-gui)
 
 (define depth-level 2)
+
+; A snip class is needed for every "kind" of snip that is managed in the pasteboard
 (define chinese-checkers-piece-snip-class
   (make-object
    (class snip-class%
      (super-new)
      (send this set-classname "chinese-checkers-piece-snip"))))
 
+; The chinese-checkers-piece-snip instance needs to be registered
 (send (get-the-snip-class-list) add chinese-checkers-piece-snip-class)
 
+; A snip% class to represent our chinese checkers pieces.
+; There is a single class for all pieces
+; The fields of the constructor are: 
+; id, name, glyph (unicode character for the chess piece), font, size, moves, location, color 
 (define chinese-checkers-piece%
   (class snip%
     (init-field id name glyph font size moves [location #f])
@@ -26,9 +33,10 @@
         (if (and admin location)        ; can be #f is the snip is not owned
             (let ((board (send admin get-editor)))
               (moves board location))
-            ;; Return an empty list if this piece is not on a board
+            ; Return an empty list if this piece is not on a board
             '())))
 
+    ; Return the size of this snip on the board
     (define/override (get-extent dc x y width height descent space lspace rspace)
       (when width (set-box! width size))
       (when height (set-box! height size))
@@ -37,15 +45,20 @@
       (when lspace (set-box! lspace 0.0))
       (when rspace (set-box! rspace 0.0)))
 
+    ; Draw the chess piece on the board at X, Y location
     (define/override (draw dc x y . other)
       (send dc set-font font)
       (send dc set-text-foreground "black")
+      ; Find the dimensions of the glyph so that it is drawn in the middle of
+      ; the chess piece
       (define-values (glyph-width glyph-height baseline extra-space)
         (send dc get-text-extent glyph font #t))
       (let ((ox (/ (- size glyph-width) 2))
             (oy (/ (- size glyph-height 2))))
         (send dc draw-text glyph (+ x ox) (+ y oy))))
     ))
+
+; Valid row and column ranges
 (define (valid-rank? rank) (and (>= rank 0) (< rank 10)))
 (define (valid-file? file) (and (>= file 0) (< file 10)))
 
@@ -75,6 +88,7 @@
                 [else (valid-jump-by-hash-offset white-pieces black-pieces location (+ nrank roffset) (+ nfile foffset) moves first-call visited color double-jumps)])))
     moves)))
 
+; Auxiliary function that returns the valid double jumps
 (define (valid-jump-by-offset nrank nfile moves board location first-call visited)
    (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((jump-candidate (rank-file->location nrank nfile))) 
@@ -84,6 +98,8 @@
                 moves)
   ))moves))
 
+; Determine the list of valid moves by applying an offset to the current location
+; This function returns the list of valid moves
 (define (valid-moves-by-board-offset board location first-call moves visited)
   (define-values (rank file) (location->rank-file location))
   (for/fold ([moves moves])
@@ -99,61 +115,76 @@
                 [else (valid-jump-by-offset (+ nrank roffset) (+ nfile foffset) moves board location first-call visited)])))
     moves)))
 
+; Offsets for player's pieces
 (define piece-offsets '((-1 -1) (-1 0) (0 1) (0 -1) (1 0) (1 1)))
 
+; Offsets for AI's pieces
 (define (get-piece-offsets color)
   (if (eq? color 'black) '((-1 0) (0 1) (-1 -1))
       '((0 -1) (1 0) (1 1))))
 
-;(0 -1) (1 0) N
-;(-1 0) (0 1) W
-
+; Returns the valid list of moves for a chinese checkers piece
 (define ((piece-moves color) board location)
   (valid-moves-by-board-offset
    board location #t '() '())
   )
 
+; Data of the two types of pieces
+; White (AI)
+; Black (Player)
 (define chinese-checkers-piece-data
   (hash
    "W" (cons #\u26AA (piece-moves 'white))
    "B" (cons #\u26AB (piece-moves 'black))))
 
-
+; sequence to create the id of the pieces
 (define (get-id-counter)
   (let ((current-id piece-id-counter))
     (set! piece-id-counter (+ piece-id-counter 1))
     current-id))
 
 (define piece-id-counter 0)
+
+; Create a new chinese checkers piece snip based on color and location. This function
+; determines the rest of the parameters required by the chinese-checkers-piece% class
 (define (make-chinese-checkers-piece color-name [location #f])
   (match-define (cons glyph moves) (hash-ref chinese-checkers-piece-data color-name))
   (define font (send the-font-list find-or-create-font 20 'default 'normal 'normal))
   (new chinese-checkers-piece% [id (get-id-counter)] [name color-name] [glyph (string glyph)] [font font]
                     [size 35] [location location] [moves moves]))
 
+; A pasteboard to represent a chinese checkers game board. It allows placing pieces at
+; the correct locations and moving them according to chinese checkers game rules
 (define chinese-checkers-board%
   (class pasteboard%
     (super-new)
 
     (define drag-dx 0)
     (define drag-dy 0)
-    (define highlight-location #f)
-    (define valid-move-locations '())
+    (define highlight-location #f) ; A location name that should be highlighted on the board
+    (define valid-move-locations '()) ; Valid moves that will be highlighted in special way
     (define turn 'black)
-    (define message #f)
+    (define message #f) ; Message to be displayed to the user
+
+    ; A message timer is used to clear the message after a timeout period
     (define message-timer
       (new timer%
            [notify-callback (lambda ()
                               (set! message #f)
                               (send (send this get-canvas) refresh))]))
 
-    
+    ; Set a message to be displayed to the user. The message will be
+    ; displayed for a period of time, then it will disappear automatically
     (define (set-message m)
       (set! message m)
       (send message-timer start 2000)
+      ; refresh the canvas
       (send (send this get-canvas) refresh))
 
-
+     ; This method is responsible for drawing any non-interactive
+     ; parts of the chinese checkers board game: the board itself, any highlighted
+     ; squares plus a message displayed to the user (if any).  This method is
+     ; invoked twice: first, before the chinese checkers pieces are drawn and once after.
      (define/override (on-paint before? dc . other)
       (if before?
           (begin
@@ -162,11 +193,13 @@
               (highlight-square dc location #f "green"))
             (when highlight-location
               (highlight-square dc highlight-location #f "red")))
-          ;; message is drawn after the snips
+          ; message is drawn after the snips
           (when message
             (display-message dc message))))
     
-    
+    ; This method is invoked after a snip is inserted into the pasteboard.
+    ; We use this opportunity to position the snip at the right coordinates,
+    ; corresponding to its location.
     (define/augment (after-insert chinese-checkers-piece . rest)
       (position-piece this chinese-checkers-piece))
     
@@ -174,13 +207,15 @@
       (send this begin-edit-sequence)
       (let loop ([snip (send this find-first-snip)])
         (when snip
-          ;; Reposition the piece, since the location is stored as text
-          ;; (e.g. d3) its new coordinates will be recomputed to the correct
-          ;; place
+          ; Reposition the piece, since the location is stored as text
+          ; (e.g. d3) its new coordinates will be recomputed to the correct
+          ; place
           (position-piece this snip)
           (loop (send snip next))))
       (send this end-edit-sequence))
 
+    ; This method is invoked repeatedly when a piece is moved (whether by
+    ; dragging it or by a call to move-to)
     (define/augment (on-move-to snip x y dragging?)
       (when dragging?
         (let ((location (xy->location this (+ x drag-dx) (+ y drag-dy))))
@@ -188,16 +223,18 @@
             (set! highlight-location location)
             (send (send this get-canvas) refresh)))))
 
+    ; This method is invoked when the user attempts to drag a chinese checkers piece on
+    ; the board. If it returns #f, the drag is not permitted 
     (define/augment (can-interactive-move? event)
       (define piece (send this find-next-selected-snip #f))
-      ;; The user tried to move a piece of the opposite color, remind them
-      ;; again
+      ; The user tried to move a piece of the opposite color, remind them again
       (unless (eq? turn (send piece color))
         (set-message (format "It's ~a turn to move"
                       (if (eq? turn 'white) "AI" "Player's"))))
       (eq? turn (send piece color)))
 
-
+    ; This method is invoked once only when the user begins to drag a chinese checkers
+    ; piece and only if can-interactive-move? allowed the drag to happen
     (define/augment (on-interactive-move event)
       (define piece (send this find-next-selected-snip #f))
       (define-values (x y) (values (box 0) (box 0)))
@@ -205,13 +242,15 @@
       (set! drag-dx (- (send event get-x) (unbox x)))
       (set! drag-dy (- (send event get-y) (unbox y))))
 
+    ; This method is invoked when the user finished dragging a chinese checkers piece on
+    ; the board. We find the location where the piece was dropped, check if
+    ; it is a valid move and update the board accordingly
     (define/augment (after-interactive-move event)
       (define piece (send this find-next-selected-snip #f))
       (define location (xy->location this (send event get-x) (send event get-y)))
       (define valid-moves (send piece valid-moves))
       (when (member location valid-moves)
-        ;; This is a valid move, remove any target piece and update the piece
-        ;; location
+        ; This is a valid move, remove any target piece and update the piece location
         (let ((target-piece (piece-at-location this location)))
           (when (and target-piece (not (eq? piece target-piece)))
             (send target-piece set-location #f)
@@ -226,12 +265,14 @@
         (cond [(check-win? 'black board '("j6" "i7" "h8" "g9" "j7" "i8" "h9") '("j9" "j8" "i9")) (set-message "Player Wins")]
               [(check-win? 'white board '("c0" "b1" "a2" "d0" "c1" "b2" "a3") '("a0" "a1" "b0")) (set-message "AI Wins")]
               [else   (set! initial-flag #f)
+        ; Moving the first 5 AI moves
         (when (eq? turn 'white)
           (when (< initial-move-counter 5)
             (let ((positions (second (get-initial-move))))
               (send (piece-at-location board (first positions)) set-location (second positions))
               (position-piece board (piece-at-location board (second positions))))
             (set! initial-flag #t))
+          ; Doing Min-Max moves
           (when (not initial-flag)
             (let ((positions (alpha-beta-search hash-black-pieces hash-white-pieces depth-level)))
               (printf "positions: ~a\n" positions)
@@ -245,14 +286,16 @@
       
         )
       
-      ;; If the move is not valid it will be moved back.
+      ; If the move is not valid it will be moved back.
       (position-piece this piece)
       (set! highlight-location #f)
-      ;; Note: piece is still selected, but the valid moves are relative to
-      ;; the new position
+      ; Note: piece is still selected, but the valid moves are relative to
+      ; the new position
       (set! valid-move-locations (send piece valid-moves))
       (send (send this get-canvas) refresh))
 
+    ; This method is invoked each time a snip is selected or un-selected in
+    ; the pasteboard and it allows us to perform several operations when this happens
     (define/augment (after-select snip on?)
       (if on?
           (begin
@@ -267,7 +310,7 @@
     ))
 
 
-
+; hash for player board points heuristic
 (define black-pieces-points
     (hash
     "a0" 1
@@ -291,6 +334,7 @@
     "j9" 19 
     ))
 
+; hash for AI board points heuristic
 (define white-pieces-points
     (hash
    "a0" 19
@@ -313,6 +357,7 @@
     "j8" 2 "i9" 2
     "j9" 1 
     ))
+
 ; (substring "a1" 0 1) = a
 ; (substring "a1" 1 2) = 1
 (define white-distance-points
@@ -370,6 +415,7 @@
   (set! initial-move-counter (+ initial-move-counter 1))
     current-move)))
 
+; Sum player points heuristics
 (define (sum-black-points blacks)
   (let ((sum 0)) 
   (for ([(piece-id pos-and-jumps) blacks])
@@ -380,6 +426,7 @@
                       )))
     sum))
 
+; Sum AI points heuristics
 (define (sum-white-points whites)
   (let ((sum 0)) 
   (for ([(piece-id pos-and-jumps) whites])
@@ -390,9 +437,13 @@
                       )))
     sum))
 
+; Eval function
+; Substracts the AI's points from the player's
 (define (eval white-pieces black-pieces)
   (- (sum-white-points white-pieces) (sum-black-points black-pieces)))
 
+; alpha-beta-search
+; Calls the max and min functions
 (define (alpha-beta-search black-pieces white-pieces total-depth)
   (max-value white-pieces black-pieces -10000 10000 0 total-depth))
 
