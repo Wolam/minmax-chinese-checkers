@@ -120,8 +120,8 @@
 
 ; Offsets for AI's pieces
 (define (get-piece-offsets color)
-  (if (eq? color 'black) '((-1 0) (0 1) (-1 -1))
-      '((0 -1) (1 0) (1 1))))
+  (if (eq? color 'black) '((-1 0) (0 1) (-1 -1) (1 1))
+      '((-1 -1) (0 -1) (1 0) (1 1))))
 
 ; Returns the valid list of moves for a chinese checkers piece
 (define ((piece-moves color) board location)
@@ -317,94 +317,47 @@
     "b0" 2 "a1" 2 
     "c0" 3 "b1" 3 "a2" 3
     "d0" 4 "c1" 4 "b2" 4 "a3" 4
-    "e0" 1 "d1" 5 "c2" 5 "b3" 5 "a4" 1
-    "f0" 1 "e1" 6 "d2" 6 "c3" 6 "b4" 6 "a5" 1 
-    "g0" 1 "f1" 1 "e2" 7 "d3" 7 "c4" 7 "b5" 1 "a6" 1
-    "h0" 1 "g1" 1 "f2" 8 "e3" 8 "d4" 8 "c5" 8 "b6" 1 "a7" 1
-    "i0" 1 "h1" 1 "g2" 1 "f3" 9 "e4" 9 "d5" 9 "c6" 1 "b7" 1 "a8" 1
-    "j0" 1 "i1" 1 "h2" 1 "g3" 10 "f4" 10 "e5" 10 "d6" 10 "c7" 1 "b8" 1 "a9" 1
-    "j1" 1 "i2" 1 "h3" 1 "g4" 11 "f5" 11 "e6" 11 "d7" 1 "c8" 1 "b9" 1 
-    "j2" 1 "i3" 1 "h4" 12 "g5" 12 "f6" 12 "e7" 12 "d8" 1 "c9" 1
-    "j3" 1 "i4" 1 "h5" 13 "g6" 13 "f7" 13 "e8" 1 "d9" 1
-    "j4" 1 "i5" 14 "h6" 14 "g7" 14 "f8" 14 "e9" 1
-    "j5" 1 "i6" 15 "h7" 15 "g8" 15 "f9" 1 
-    "j6" 16 "i7" 16 "h8" 16 "g9" 16
-    "j7" 17 "i8" 17 "h9" 17
-    "j8" 18 "i9" 18
-    "j9" 19 
+    "e0" -10 "d1" 5 "c2" 5 "b3" 5 "a4" -10
+    "f0" -10 "e1" 6 "d2" 6 "c3" 6 "b4" 6 "a5" -10 
+    "g0" -10 "f1" 1 "e2" 7 "d3" 7 "c4" 7 "b5" 1 "a6" -10
+    "h0" -10 "g1" 1 "f2" 8 "e3" 8 "d4" 8 "c5" 8 "b6" 1 "a7" -10
+    "i0" -10 "h1" 1 "g2" 1 "f3" 9 "e4" 9 "d5" 9 "c6" 1 "b7" 1 "a8" -10
+    "j0" -10 "i1" 1 "h2" 1 "g3" 10 "f4" 10 "e5" 10 "d6" 10 "c7" 1 "b8" 1 "a9" -10
+    "j1" -10 "i2" 1 "h3" 1 "g4" 11 "f5" 11 "e6" 11 "d7" 1 "c8" 1 "b9" -10 
+    "j2" -10 "i3" 1 "h4" 12 "g5" 12 "f6" 12 "e7" 12 "d8" 1 "c9" -10
+    "j3" -10 "i4" 1 "h5" 13 "g6" 13 "f7" 13 "e8" 1 "d9" -10
+    "j4" -10 "i5" 14 "h6" 14 "g7" 14 "f8" 14 "e9" -10
+    "j5" -10 "i6" 15 "h7" 15 "g8" 15 "f9" -10 
+    "j6" 25 "i7" 25 "h8" 25 "g9" 25
+    "j7" 30 "i8" 30 "h9" 30
+    "j8" 35 "i9" 35
+    "j9" 40 
     ))
 
 ; hash for AI board points heuristic
 (define white-pieces-points
     (hash
-   "a0" 19
-    "b0" 18 "a1" 18 
-    "c0" 17 "b1" 17 "a2" 17
-    "d0" 16 "c1" 16 "b2" 16 "a3" 16
-    "e0" 1 "d1" 15 "c2" 15 "b3" 15 "a4" 15
-    "f0" 1 "e1" 14 "d2" 14 "c3" 14 "b4" 14 "a5" 14
-    "g0" 1 "f1" 1 "e2" 13 "d3" 13 "c4" 13 "b5" 13 "a6" 13
-    "h0" 1 "g1" 1 "f2" 12 "e3" 12 "d4" 12 "c5" 12 "b6" 12 "a7" 12
-    "i0" 1 "h1" 1 "g2" 1 "f3" 11 "e4" 11 "d5" 11 "c6" 11 "b7" 11 "a8" 1
-    "j0" 1 "i1" 1 "h2" 1 "g3" 10 "f4" 10 "e5" 10 "d6" 10 "c7" 10 "b8" 1 "a9" 1
-    "j1" 1 "i2" 1 "h3" 1 "g4" 9 "f5" 9 "e6" 9 "d7" 9 "c8" 9 "b9" 1
-    "j2" 1 "i3" 1 "h4" 8 "g5" 8 "f6" 8 "e7" 8 "d8" 8 "c9" 1
-    "j3" 1 "i4" 1 "h5" 7 "g6" 7 "f7" 7 "e8" 7 "d9" 1 
-    "j4" 1 "i5" 6 "h6" 6 "g7" 6 "f8" 6 "e9" 7
-    "j5" 1 "i6" 5 "h7" 5 "g8" 5 "f9" 5 
+   "a0" 40
+    "b0" 35 "a1" 35 
+    "c0" 30 "b1" 30 "a2" 30
+    "d0" 25 "c1" 25 "b2" 25 "a3" 25
+    "e0" -10 "d1" 15 "c2" 15 "b3" 15 "a4" -10
+    "f0" -10 "e1" 14 "d2" 14 "c3" 14 "b4" 14 "a5" -10
+    "g0" -10 "f1" 1 "e2" 13 "d3" 13 "c4" 13 "b5" 13 "a6" -10
+    "h0" -10 "g1" 1 "f2" 12 "e3" 12 "d4" 12 "c5" 12 "b6" 12 "a7" -10
+    "i0" -10 "h1" 1 "g2" 1 "f3" 11 "e4" 11 "d5" 11 "c6" 11 "b7" 11 "a8" -10
+    "j0" -10 "i1" 1 "h2" 1 "g3" 10 "f4" 10 "e5" 10 "d6" 10 "c7" 10 "b8" 1 "a9" -10
+    "j1" -10 "i2" 1 "h3" 1 "g4" 9 "f5" 9 "e6" 9 "d7" 9 "c8" 9 "b9" -10
+    "j2" -10 "i3" 1 "h4" 8 "g5" 8 "f6" 8 "e7" 8 "d8" 8 "c9" -10
+    "j3" -10 "i4" 1 "h5" 7 "g6" 7 "f7" 7 "e8" 7 "d9" -10 
+    "j4" -10 "i5" 6 "h6" 6 "g7" 6 "f8" 6 "e9" -10
+    "j5" -10 "i6" 5 "h7" 5 "g8" 5 "f9" 5 
     "j6" 4 "i7" 4 "h8" 4 "g9" 4
     "j7" 3 "i8" 3 "h9" 3
     "j8" 2 "i9" 2
     "j9" 1 
     ))
 
-; (substring "a1" 0 1) = a
-; (substring "a1" 1 2) = 1
-(define white-distance-points
-    (hash
-     "j" 5
-     "i" 10
-     "h" 15
-     "g" 25
-     "f" 25
-     "e" 30
-     "d" 35
-     "c" 40
-     "b" 45
-     "a" 50
-      "0"  1
-      "1"  25 
-      "2"  25
-      "3"  25
-      "4"  25
-      "5"  15
-      "6"  10
-      "7"  5
-      "8"  5
-      "9"  1   ))
-
-(define black-distance-points
-    (hash
-     "a" 5
-     "b" 10
-     "c" 15
-     "d" 20
-     "e" 25
-     "f" 30
-     "g" 35
-     "h" 40
-     "i" 45
-     "j" 50
-     "0" 1
-     "1" 5
-      "2"  5
-      "3"  10
-      "4"  15
-      "5"  20
-      "6"  25
-      "7"  25
-      "8"  25
-      "9"  1   ))
 
 (define initial-flag #t)
 
@@ -420,8 +373,6 @@
   (let ((sum 0)) 
   (for ([(piece-id pos-and-jumps) blacks])
      (set! sum (+ sum (hash-ref black-pieces-points (car pos-and-jumps))
-                      ;(hash-ref black-distance-points (substring (car pos-and-jumps) 0 1))
-                      ;(hash-ref black-distance-points (substring (car pos-and-jumps) 1 2))
                       (cdr pos-and-jumps)
                       )))
     sum))
@@ -431,8 +382,6 @@
   (let ((sum 0)) 
   (for ([(piece-id pos-and-jumps) whites])
      (set! sum (+ sum (hash-ref white-pieces-points (car pos-and-jumps))
-                      ;(hash-ref white-distance-points (substring (car pos-and-jumps) 0 1))
-                      ;(hash-ref white-distance-points (substring (car pos-and-jumps) 1 2))
                       (cdr pos-and-jumps)
                       )))
     sum))
