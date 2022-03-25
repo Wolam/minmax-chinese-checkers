@@ -260,6 +260,7 @@
         (let ((piece-id (send piece get-id)))
         (set! hash-positions2 (hash-set hash-positions2 (car (hash-ref hash-black-pieces piece-id)) #f))
         (set! hash-positions2 (hash-set hash-positions2 location #t))
+        (set! prev-black-state hash-black-pieces)
         (set! hash-black-pieces (hash-set hash-black-pieces piece-id (list location 0 (- (third (hash-ref hash-black-pieces piece-id)) 7)) )))
         
         ; check if the player won
@@ -278,6 +279,7 @@
             (let ((positions (alpha-beta-search depth-level)))
               (let ((piece-id (send (piece-at-location board (second positions)) get-id)))
               (printf "positions: ~a\n" positions)
+              (set! prev-white-state hash-white-pieces)  
               (set! hash-white-pieces (hash-set hash-white-pieces piece-id (list (car (third positions)) 0 (- (third (hash-ref hash-white-pieces piece-id)) 7))))
               (set! hash-positions2 (hash-set hash-positions2 (second positions) #f))
               (set! hash-positions2 (hash-set hash-positions2 (car (third positions)) #t))
@@ -312,6 +314,8 @@
 
 
 ; hash for player board points heuristic
+
+
 (define black-pieces-points
     (hash
     "a0" 1
@@ -334,6 +338,7 @@
     "j8" 35 "i9" 35
     "j9" 40 
     ))
+
 
 ; hash for AI board points heuristic
 (define white-pieces-points
@@ -360,6 +365,8 @@
     ))
 
 
+
+
 (define initial-flag #t)
 
 (define (get-initial-move)
@@ -380,8 +387,9 @@
                       (third hash-data)
                       (if (and (> jump-points 14) (not first-piece)) jump-points 0)
                       (if (> location-points 24)
-                        (if (eq? (hash-ref black-pieces-points (car hash-data)) location-points) -500 0) 0)
-                      )))
+                        (if (eq? location (hash-ref prev-black-state piece-id)) -500 0) 0)
+                      (if (> location-points 24)
+                          (if (eq? (hash-ref black-pieces-points (car hash-data)) location-points) -500 0) 0))))
     sum))
 
 ; Sum AI points heuristics
@@ -395,7 +403,10 @@
                       (third hash-data)
                       (if (and (> jump-points 14) (not first-piece)) jump-points 0)
                       (if (> location-points 24)
-                        (if (eq? (hash-ref white-pieces-points (car hash-data)) location-points) -500 0) 0)
+                        (if (eq? location (hash-ref prev-white-state piece-id)) -500 0) 0)
+                      (if (> location-points 24)
+                          (if (eq? (hash-ref white-pieces-points (car hash-data)) location-points) -500 0) 0)
+                      
                       )))
     sum))
 
@@ -422,6 +433,7 @@
     (define flag #f)
     (for ([(piece-id current-piece) white-pieces] #:break flag)
             (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset hash-tile-status (car current-piece) #t '() '() 'white 0))))
+              
               (for ([current-move possible-piece-moves] #:break flag)
                 (let ((result (min-value black-pieces (hash-set white-pieces piece-id (list (car current-move) (cdr current-move) (third (hash-ref white-pieces piece-id))))
                                a b current-depth total-depth (hash-set (hash-set hash-tile-status (car current-piece) #f) (car current-move) #t)
@@ -434,7 +446,8 @@
                   (when (>= b-value b)
                     (set! flag #t))
                       (set! a (max a b-value)))))))
-    (list b-value b-original-pos b-new-pos)]))
+    (if (eq? b-value -10000) (list (eval hash-white-moves hash-black-moves) #f #f #f) (list b-value b-original-pos b-new-pos)
+        )]))
 
 (define (min-value black-pieces white-pieces a b current-depth total-depth hash-tile-status hash-black-moves hash-white-moves)
   (define first-movement #f)
@@ -496,6 +509,9 @@
      17 '(0 . "g7" . 150)
      18 '(0 . "h8" . 150)
      19 '(0 . "g8" . 150)))
+
+(define prev-white-state (hash))
+(define prev-black-state (hash))
 
 
 (define (position-piece board piece)
