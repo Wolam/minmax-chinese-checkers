@@ -373,9 +373,14 @@
 (define (sum-black-points blacks)
   (let ((sum 0)) 
   (for ([(piece-id pos-and-jumps) blacks])
-     (set! sum (+ sum (hash-ref black-pieces-points (car pos-and-jumps))
-                      (second pos-and-jumps)
-                      (third (hash-ref hash-black-pieces piece-id))
+    (define-values (location jump-points first-piece hash-data) (values (first pos-and-jumps) (second pos-and-jumps) (third pos-and-jumps) (hash-ref hash-black-pieces piece-id)))
+    (define location-points (hash-ref black-pieces-points location))
+     (set! sum (+ sum location-points
+                      jump-points
+                      (third hash-data)
+                      (if (and (> jump-points 14) (not first-piece)) jump-points 0)
+                      (if (> location-points 24)
+                        (if (eq? (hash-ref black-pieces-points (car hash-data)) location-points) -500 0) 0)
                       )))
     sum))
 
@@ -383,9 +388,14 @@
 (define (sum-white-points whites)
   (let ((sum 0)) 
   (for ([(piece-id pos-and-jumps) whites])
-     (set! sum (+ sum (hash-ref white-pieces-points (car pos-and-jumps))
-                      (second pos-and-jumps)
-                      (third (hash-ref hash-white-pieces piece-id))
+    (define-values (location jump-points first-piece hash-data) (values (first pos-and-jumps) (second pos-and-jumps) (third pos-and-jumps) (hash-ref hash-white-pieces piece-id)))
+    (define location-points (hash-ref white-pieces-points location))
+     (set! sum (+ sum location-points
+                      jump-points
+                      (third hash-data)
+                      (if (and (> jump-points 14) (not first-piece)) jump-points 0)
+                      (if (> location-points 24)
+                        (if (eq? (hash-ref white-pieces-points (car hash-data)) location-points) -500 0) 0)
                       )))
     sum))
 
