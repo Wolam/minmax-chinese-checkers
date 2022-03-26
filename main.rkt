@@ -16,7 +16,7 @@
 ; A snip% class to represent our chinese checkers pieces.
 ; There is a single class for all pieces
 ; The fields of the constructor are: 
-; id, name, glyph (unicode character for the chess piece), font, size, moves, location, color 
+; id, name, glyph (unicode character for the chinese checkers piece), font, size, moves, location, color 
 (define chinese-checkers-piece%
   (class snip%
     (init-field id name glyph font size moves [location #f])
@@ -45,12 +45,12 @@
       (when lspace (set-box! lspace 0.0))
       (when rspace (set-box! rspace 0.0)))
 
-    ; Draw the chess piece on the board at X, Y location
+    ; Draw the chinese checkers piece on the board at X, Y location
     (define/override (draw dc x y . other)
       (send dc set-font font)
       (send dc set-text-foreground "black")
       ; Find the dimensions of the glyph so that it is drawn in the middle of
-      ; the chess piece
+      ; the chinese checkers piece
       (define-values (glyph-width glyph-height baseline extra-space)
         (send dc get-text-extent glyph font #t))
       (let ((ox (/ (- size glyph-width) 2))
@@ -62,7 +62,7 @@
 (define (valid-rank? rank) (and (>= rank 0) (< rank 10)))
 (define (valid-file? file) (and (>= file 0) (< file 10)))
 
-
+; Auxiliary function that returns the valid double jumps
 (define (valid-jump-by-hash-offset hash-tile-status nrank nfile moves visited color double-jumps)
    (if (and (valid-rank? nrank) (valid-file? nfile))
         (let ((jump-candidate (rank-file->location nrank nfile)))
@@ -73,6 +73,8 @@
                [else moves])
    ))moves))
 
+; Determine the list of valid moves by applying an offset to the current location
+; This function returns the list of valid moves and works with a hash that contains locations and booleans
 (define (valid-moves-by-hashes-offset hash-tile-status location first-call moves visited color double-jumps)
   (define-values (rank file) (location->rank-file location))
   (for/fold ([moves moves])
@@ -99,7 +101,7 @@
   ))moves))
 
 ; Determine the list of valid moves by applying an offset to the current location
-; This function returns the list of valid moves
+; This function returns the list of valid moves and works with the board positions
 (define (valid-moves-by-board-offset board location first-call moves visited)
   (define-values (rank file) (location->rank-file location))
   (for/fold ([moves moves])
@@ -313,9 +315,8 @@
     ))
 
 
+
 ; hash for player board points heuristic
-
-
 (define black-pieces-points
     (hash
     "a0" 1
@@ -339,7 +340,6 @@
     "j9" 40 
     ))
 
-
 ; hash for AI board points heuristic
 (define white-pieces-points
     (hash
@@ -349,26 +349,24 @@
     "d0" 25 "c1" 25 "b2" 25 "a3" 25
     "e0" -10 "d1" 15 "c2" 15 "b3" 15 "a4" -10
     "f0" -10 "e1" 14 "d2" 14 "c3" 14 "b4" 14 "a5" -10
-    "g0" -10 "f1" 1 "e2" 13 "d3" 13 "c4" 13 "b5" 13 "a6" -10
-    "h0" -10 "g1" 1 "f2" 12 "e3" 12 "d4" 12 "c5" 12 "b6" 12 "a7" -10
-    "i0" -10 "h1" 1 "g2" 1 "f3" 11 "e4" 11 "d5" 11 "c6" 11 "b7" 11 "a8" -10
-    "j0" -10 "i1" 1 "h2" 1 "g3" 10 "f4" 10 "e5" 10 "d6" 10 "c7" 10 "b8" 1 "a9" -10
-    "j1" -10 "i2" 1 "h3" 1 "g4" 9 "f5" 9 "e6" 9 "d7" 9 "c8" 9 "b9" -10
-    "j2" -10 "i3" 1 "h4" 8 "g5" 8 "f6" 8 "e7" 8 "d8" 8 "c9" -10
-    "j3" -10 "i4" 1 "h5" 7 "g6" 7 "f7" 7 "e8" 7 "d9" -10 
+    "g0" -10 "f1" 1 "e2" 13 "d3" 13 "c4" 13 "b5" 1 "a6" -10
+    "h0" -10 "g1" 1 "f2" 12 "e3" 12 "d4" 12 "c5" 12 "b6" 1 "a7" -10
+    "i0" -10 "h1" 1 "g2" 1 "f3" 11 "e4" 11 "d5" 11 "c6" 1 "b7" 1 "a8" -10
+    "j0" -10 "i1" 1 "h2" 1 "g3" 10 "f4" 10 "e5" 10 "d6" 10 "c7" 1 "b8" 1 "a9" -10
+    "j1" -10 "i2" 1 "h3" 1 "g4" 9 "f5" 9 "e6" 9 "d7" 1 "c8" 1 "b9" -10
+    "j2" -10 "i3" 1 "h4" 8 "g5" 8 "f6" 8 "e7" 8 "d8" 1 "c9" -10
+    "j3" -10 "i4" 1 "h5" 7 "g6" 7 "f7" 7 "e8" 1 "d9" -10 
     "j4" -10 "i5" 6 "h6" 6 "g7" 6 "f8" 6 "e9" -10
-    "j5" -10 "i6" 5 "h7" 5 "g8" 5 "f9" 5 
+    "j5" -10 "i6" 5 "h7" 5 "g8" 5 "f9" -10 
     "j6" 4 "i7" 4 "h8" 4 "g9" 4
     "j7" 3 "i8" 3 "h9" 3
     "j8" 2 "i9" 2
     "j9" 1 
     ))
 
-
-
-
 (define initial-flag #t)
 
+; Get the inital moves of the AI
 (define (get-initial-move)
   (if (empty? initial-AI-moves) #f
   (let ((current-move (car initial-AI-moves)))
@@ -382,14 +380,14 @@
   (for ([(piece-id pos-and-jumps) blacks])
     (define-values (location jump-points first-piece hash-data) (values (first pos-and-jumps) (second pos-and-jumps) (third pos-and-jumps) (hash-ref hash-black-pieces piece-id)))
     (define location-points (hash-ref black-pieces-points location))
-     (set! sum (+ sum location-points
-                      jump-points
-                      (third hash-data)
+     (set! sum (+ sum location-points ; Location points in board heuristic
+                      jump-points ; Double jump points heuristic 
+                      (third hash-data) 
                       (if (and (> jump-points 14) (not first-piece)) jump-points 0)
-                      (if (> location-points 24)
-                        (if (eq? location (hash-ref prev-black-state piece-id)) -500 0) 0)
-                      (if (> location-points 24)
-                          (if (eq? (hash-ref black-pieces-points (car hash-data)) location-points) -500 0) 0))))
+                      (if (> location-points 12)
+                        (if (eq? location (hash-ref prev-black-state piece-id)) -500 0) 0) ; Previous move heuristic
+                      (if (> location-points 11)
+                          (if (>= (hash-ref black-pieces-points (car hash-data)) location-points) -500 0) 0)))) 
     sum))
 
 ; Sum AI points heuristics
@@ -398,14 +396,14 @@
   (for ([(piece-id pos-and-jumps) whites])
     (define-values (location jump-points first-piece hash-data) (values (first pos-and-jumps) (second pos-and-jumps) (third pos-and-jumps) (hash-ref hash-white-pieces piece-id)))
     (define location-points (hash-ref white-pieces-points location))
-     (set! sum (+ sum location-points
-                      jump-points
+     (set! sum (+ sum location-points ; Location points in board heuristic
+                      jump-points ; Double jump points heuristic 
                       (third hash-data)
                       (if (and (> jump-points 14) (not first-piece)) jump-points 0)
-                      (if (> location-points 24)
-                        (if (eq? location (hash-ref prev-white-state piece-id)) -500 0) 0)
-                      (if (> location-points 24)
-                          (if (eq? (hash-ref white-pieces-points (car hash-data)) location-points) -500 0) 0)
+                      (if (> location-points 12)
+                        (if (eq? location (hash-ref prev-white-state piece-id)) -500 0) 0) ; Previous move heuristic
+                      (if (> location-points 11)
+                          (if (>= (hash-ref white-pieces-points (car hash-data)) location-points) -500 0) 0)
                       
                       )))
     sum))
@@ -425,24 +423,29 @@
   (define first-movement #f)
   (when (eq? current-depth 0) (set! first-movement #t))
   (cond
-    [(eq? current-depth total-depth) (list (eval hash-white-moves hash-black-moves) #f #f #f)];En esta parte se llama al eval
+    [(eq? current-depth total-depth) (list (eval hash-white-moves hash-black-moves) #f #f #f)]
     [else
     (define b-value -10000)
     (define b-original-pos #f)
     (define b-new-pos #f)
     (define flag #f)
+    ; Iterate each AI piece 
     (for ([(piece-id current-piece) white-pieces] #:break flag)
+            ; Get all possible moves of each AI piece 
             (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset hash-tile-status (car current-piece) #t '() '() 'white 0))))
-              
+              ; Iterate each possible moves
               (for ([current-move possible-piece-moves] #:break flag)
+                ; Get result of min function
                 (let ((result (min-value black-pieces (hash-set white-pieces piece-id (list (car current-move) (cdr current-move) (third (hash-ref white-pieces piece-id))))
                                a b current-depth total-depth (hash-set (hash-set hash-tile-status (car current-piece) #f) (car current-move) #t)
                                hash-black-moves (hash-set hash-white-moves piece-id (list (car current-move) (cdr current-move) first-movement)))))
+                ; Check if the min value is bigger than b-value
                 (when (> result b-value)
                   (set! b-value result)
                   (when (eq? current-depth 0)
                   (set! b-original-pos (car current-piece))
                   (set! b-new-pos current-move))
+                  ; Doing the pruning
                   (when (>= b-value b)
                     (set! flag #t))
                       (set! a (max a b-value)))))))
@@ -454,14 +457,20 @@
   (when (eq? current-depth 0) (set! first-movement #t))
     (define b-value 10000)
   (define flag #f)
+    ; Iterate each Player piece 
     (for ([(piece-id current-piece) black-pieces] #:break flag)
+            ; Get all possible moves of each Player piece 
             (let ((possible-piece-moves (remove-duplicates (valid-moves-by-hashes-offset hash-tile-status (car current-piece) #t '() '() 'black 0))))
+              ; Iterate each possible moves
               (for ([current-move possible-piece-moves] #:break flag)
+                ; Get result of max function
                 (let ((result (max-value white-pieces (hash-set black-pieces piece-id (list (car current-move) (cdr current-move) (third (hash-ref black-pieces piece-id))))
                                a b (+ current-depth 1) total-depth (hash-set (hash-set hash-tile-status (car current-piece) #f) (car current-move) #t)
                                hash-white-moves (hash-set hash-black-moves piece-id (list (car current-move) (cdr current-move) first-movement)))))
+                ; Check if the max value is smaller than b-value
                 (when (< (first result) b-value)
                   (set! b-value (first result))
+                  ; Doing the pruning
                   (when (<= b-value a)
                     (set! flag #t))
                       (set! b (min b b-value)))))))
@@ -484,8 +493,10 @@
         "j0" #f "j1" #f "j2" #f "j3" #f "j4" #f "j5" #f "j6" #t "j7" #t "j8" #t "j9" #f))
 
 
+
 (define hash-black-pieces
     (hash
+; piece-id double-jumps piece-location subtract-each-piece-move
      0 '(0 . "a0" . 150)
      1 '(0 . "a1" . 150)
      2 '(0 . "a2" . 150)
@@ -499,6 +510,7 @@
 
 (define hash-white-pieces
     (hash
+; piece-id double-jumps piece-location subtract-each-piece-move
      10 '(0 . "f7" . 150)
      11 '(0 . "j8" . 150)
      12 '(0 . "j7" . 150)
@@ -513,7 +525,7 @@
 (define prev-white-state (hash))
 (define prev-black-state (hash))
 
-
+; Position a piece onto the board according to its location
 (define (position-piece board piece)
   (define-values (canvas-width canvas-height)
     (let ((c (send board get-canvas)))
@@ -531,6 +543,8 @@
         (+ square-x (/ (- square-width piece-width) 2))
         (+ square-y (/ (- square-height piece-height) 2))))
 
+; Convert a location, which is a string, such as "a3" into a rank and file
+; position, which are square coordinates on the board.
 (define (location->rank-file location )
   (unless (and (string? location) (= (string-length location) 2))
     (raise-argument-error 'location "valid chinese-checkers position a0 .. j9" location))
@@ -542,7 +556,8 @@
     (raise-argument-error 'location "valid chinese-checkers position a0 .. j9" location))
   (values rank file))
 
-
+; Convert a rank and file, which are coordinates on the board into a chinese checkers
+; location, which is a string, such as "a3"
 (define (rank-file->location rank file)
   (unless (<= 0 rank 10)
     (raise-argument-error 'rank "integer between 0 and 9" rank))
@@ -552,12 +567,8 @@
    (list-ref '(#\a #\b #\c #\d #\e #\f #\g #\h #\i #\j) file)
    (list-ref '(#\9 #\8 #\7 #\6 #\5 #\4 #\3 #\2 #\1 #\0) rank)))
 
-(define (black-positions hash-1 hash-2)
-  (if (hash-has-key? hash-1 1) hash-1 hash-2))
-(define (white-positions hash-1 hash-2)
-  (if (hash-has-key? hash-1 1) hash-2 hash-1))
 
-
+; Determine the location of the coordinate point at X, Y on the board 
 (define (xy->location board x y)
   (define-values (canvas-width canvas-height)
     (let ((c (send board get-canvas)))
@@ -568,6 +579,8 @@
     (values (exact-truncate (/ y square-height)) (exact-truncate (/ x square-width))))
   (rank-file->location rank file))
 
+; Return the chinese checkers piece at location, a string such as "a3", on the board, or
+; return #f if that location is empty.
 (define (piece-at-location board location)
   (let loop ((snip (send board find-first-snip)))
     (if snip
@@ -576,6 +589,8 @@
             (loop (send snip next)))
         #f)))
 
+; Display message onto the device context DC. This is used by the
+; pasteboard on-paint method to display messages
 (define (display-message dc message)
   (define font (send the-font-list find-or-create-font 24 'default 'normal 'normal))
   (define-values [w h _1 _2] (send dc get-text-extent message font #t))
@@ -591,7 +606,10 @@
   (send dc set-text-foreground "firebrick")
   (send dc draw-text message x y))
 
-
+; Draw the chinese checkers board. In addition,
+; this function also draws the letters and numbers corresponding to
+; the rank and file locations on the board. This is used by the pasteboard
+; on-paint method to display the board 
 (define (draw-chinese-checkers-board dc)
   (define brush (send the-brush-list find-or-create-brush "Tan" 'solid))
   (define pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
@@ -614,7 +632,8 @@
 
   (define brush-2 (send the-brush-list find-or-create-brush "Saddle Brown" 'solid))
   (send dc set-brush brush-2)
-  
+
+  ; Board creation
   (for* ([row (in-range 10)] [col (in-range 10)]
          #:when (or (and (even? row) (even? col))
                     (and (odd? row) (odd? col))))
@@ -631,7 +650,8 @@
     (define x (+ (* index cell-width) (- (/ cell-width 2) (/ w 2))))
     (send dc draw-text file x (- dc-height h margin))))
 
-
+; Draw a square at location such as "a3" using
+; color-name for the background and border-color-name for the border 
 (define (highlight-square dc location color-name border-color-name)
   (define-values (rank file) (location->rank-file location))
   (define brush
@@ -651,41 +671,45 @@
   (send dc draw-rectangle (* file cell-width) (* rank cell-height) cell-width cell-height))
 
 
-;; A test program for our chinese-checkers-piece% objects:
-
-;; The pasteboard% that will hold and manage the chinese-checkers pieces
+; The pasteboard% that will hold and manage the chinese-checkers pieces
 (define board (new chinese-checkers-board%))
-;; Toplevel window for our application
+; Toplevel window for our application
 (define toplevel (new frame% [label "Chinese Checkers Board"] [width 1024] [height 720]))
-;; The canvas which will display the pasteboard contents
+; The canvas which will display the pasteboard contents
 (define canvas (new editor-canvas%
                     [parent toplevel]
                     [style '(no-hscroll no-vscroll)]
                     [horizontal-inset 0]
                     [vertical-inset 0]
                     [editor board]))
+
+; This actually displays the board window
 (send toplevel show #t)
 
 (define letters '("a" "b" "c" "d" "e" "f" "g" "h" "i" "j"))
 (define numbers '("0" "1" "2" "3" "4" "5" "6" "7" "8" "9"))
 
-
+; Initial pieces positions
 (define initial
   (string-append
    "Ba0Ba1Ba2Ba3Bb0Bb1Bb2Bc0Bc1Bd0"
    "Wj9Wj8Wj7Wj6Wi9Wi8Wi7Wh9Wh8Wg9"))
 
+; Get the color of a piece by its position
+; Returns false if there is no piece in the position
 (define (color-at-location location board)
     (let ((piece (piece-at-location board location)))
              (if piece
                  (send piece color)
                  #f)))
 
+; Returns a list with the color of the pieces
 (define (colors-at-locations locations packed board)
  (if (empty? locations)
      packed
      (colors-at-locations (cdr locations) (cons (color-at-location (car locations) board) packed) board)))
 
+; Check if any player won
 (define (check-win? color board diagonals trappeds)
   (if (equal? color 'black) (and (equal? (colors-at-locations diagonals '() board) first-diagonals-black-win)
        (member (colors-at-locations trappeds '() board) black-win-cases))
