@@ -386,8 +386,8 @@
     (define location-points (hash-ref black-pieces-points location))
      (set! sum (+ sum location-points ; Location points in board heuristic
                       jump-points ; Double jump points heuristic 
-                      (third hash-data) 
-                      (if (and (> jump-points 14) (not first-piece)) jump-points 0)
+                      (third hash-data) ; Points for number of moves of the piece
+                      (if (and (> jump-points 14) (not first-piece)) jump-points 0) ; Points for future moves
                       (if (> location-points 12)
                         (if (eq? location (hash-ref prev-black-state piece-id)) -500 0) 0) ; Previous move heuristic
                       (if (> location-points 11)
@@ -402,8 +402,8 @@
     (define location-points (hash-ref white-pieces-points location))
      (set! sum (+ sum location-points ; Location points in board heuristic
                       jump-points ; Double jump points heuristic 
-                      (third hash-data)
-                      (if (and (> jump-points 14) (not first-piece)) jump-points 0)
+                      (third hash-data) ; Points for number of moves of the piece
+                      (if (and (> jump-points 14) (not first-piece)) jump-points 0) ; Points for future moves
                       (if (> location-points 12)
                         (if (eq? location (hash-ref prev-white-state piece-id)) -500 0) 0) ; Previous move heuristic
                       (if (> location-points 11)
@@ -413,7 +413,7 @@
     sum))
 
 ; Eval function
-; Substracts the AI's points from the player's
+; Subtracts the AI's points from the player's
 (define (eval white-pieces black-pieces)
   (- (sum-white-points white-pieces) (sum-black-points black-pieces)))
 
