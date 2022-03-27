@@ -1,6 +1,7 @@
 #lang racket/gui
 (require embedded-gui)
 
+; Used depth level of 2 according in minimax
 (define depth-level 2)
 
 ; A snip class is needed for every "kind" of snip that is managed in the pasteboard
@@ -58,7 +59,7 @@
         (send dc draw-text glyph (+ x ox) (+ y oy))))
     ))
 
-; Valid row and column ranges
+; Valid rank (row) and file (column) ranges
 (define (valid-rank? rank) (and (>= rank 0) (< rank 10)))
 (define (valid-file? file) (and (>= file 0) (< file 10)))
 
@@ -140,12 +141,12 @@
    "B" (cons #\u26AB (piece-moves 'black))))
 
 ; sequence to create the id of the pieces
+(define piece-id-counter 0)
+
 (define (get-id-counter)
   (let ((current-id piece-id-counter))
     (set! piece-id-counter (+ piece-id-counter 1))
     current-id))
-
-(define piece-id-counter 0)
 
 ; Create a new chinese checkers piece snip based on color and location. This function
 ; determines the rest of the parameters required by the chinese-checkers-piece% class
@@ -368,6 +369,8 @@
     "j9" 1 
     ))
 
+; Flag used to make the 5 first hard coded moves
+; by the AI
 (define initial-flag #t)
 
 ; Get the inital moves of the AI
@@ -456,6 +459,8 @@
                   (when (>= b-value b)
                     (set! flag #t))
                       (set! a (max a b-value)))))))
+    ; Check if the AI has less moves available than the current depth do the eval instead of returning original values
+    ; this was made in order to stop moving in the same diagonal and not win the game 
     (if (eq? b-value -10000) (list (eval hash-white-moves hash-black-moves) #f #f #f) (list b-value b-original-pos b-new-pos)
         )]))
 
@@ -530,6 +535,8 @@
      18 '(0 . "h8" . 150)
      19 '(0 . "g8" . 150)))
 
+; Hashes for the previous moves made by the white or black pieces
+; in order to not make the same move twice
 (define prev-white-state (hash))
 (define prev-black-state (hash))
 
@@ -648,11 +655,13 @@
     (define-values [x y] (values (* col cell-width) (* row cell-height)))
     (send dc draw-rectangle x y cell-width cell-height))
 
+  ; Row labels
   (for ([(rank index) (in-indexed '("9" "8" "7" "6" "5" "4" "3" "2" "1" "0"))])
     (define-values [_0 h _1 _2] (send dc get-text-extent rank font #t))
     (define y (+ (* index cell-height) (- (/ cell-height 2) (/ h 2))))
     (send dc draw-text rank margin y))
 
+  ; Column labels
   (for ([(file index) (in-indexed '("a" "b" "c" "d" "e" "f" "g" "h" "i" "j"))])
     (define-values [w h _1 _2] (send dc get-text-extent file font #t))
     (define x (+ (* index cell-width) (- (/ cell-width 2) (/ w 2))))
@@ -694,9 +703,6 @@
 ; This actually displays the board window
 (send toplevel show #t)
 
-(define letters '("a" "b" "c" "d" "e" "f" "g" "h" "i" "j"))
-(define numbers '("0" "1" "2" "3" "4" "5" "6" "7" "8" "9"))
-
 ; Initial pieces positions
 (define initial
   (string-append
@@ -724,6 +730,9 @@
       (and (equal? (colors-at-locations diagonals '() board) first-diagonals-white-win)
        (member (colors-at-locations trappeds '() board) white-win-cases)))
   )
+
+
+; All of the win cases possible for both white and black pieces
 
 ; c0 b1 a2 d0 c1 b2 a3
 (define first-diagonals-white-win (list 'white 'white 'white 'white 'white 'white 'white))
@@ -757,7 +766,8 @@
 (define black-win-cases (list one-trapped1-black-win one-trapped2-black-win one-trapped3-black-win
                                                     two-trapped1-black-win two-trapped2-black-win two-trapped3-black-win all-trapped-black-win all-trapped-white-win))
 
-
+; Create and place pieces on the chinese board according to the definition in
+; the string named initial
 (define (setup-board board position)
   (send board clear)
   (define piece-count (/ (string-length position) 3))
