@@ -260,12 +260,13 @@
         (set! turn (if (eq? turn 'white) 'black 'white))
         (send piece set-location location)
         (let ((piece-id (send piece get-id)))
+         ; Setting all the Player hashes to update the state of the game
         (set! hash-positions2 (hash-set hash-positions2 (car (hash-ref hash-black-pieces piece-id)) #f))
         (set! hash-positions2 (hash-set hash-positions2 location #t))
         (set! prev-black-state hash-black-pieces)
         (set! hash-black-pieces (hash-set hash-black-pieces piece-id (list location 0 (- (third (hash-ref hash-black-pieces piece-id)) 7)) )))
         
-        ; check if the player won
+        ; Check if the player won
         (cond [(check-win? 'black board '("j6" "i7" "h8" "g9" "j7" "i8" "h9") '("j9" "j8" "i9")) (set-message "Player Wins")]
               [(check-win? 'white board '("c0" "b1" "a2" "d0" "c1" "b2" "a3") '("a0" "a1" "b0")) (set-message "AI Wins")]
               [else   (set! initial-flag #f)
@@ -273,6 +274,7 @@
         (when (eq? turn 'white)
           (when (< initial-move-counter 5)
             (let ((positions (second (get-initial-move))))
+              ; Doing the AI move
               (send (piece-at-location board (first positions)) set-location (second positions))
               (position-piece board (piece-at-location board (second positions))))
             (set! initial-flag #t))
@@ -281,10 +283,12 @@
             (let ((positions (alpha-beta-search depth-level)))
               (let ((piece-id (send (piece-at-location board (second positions)) get-id)))
               (printf "positions: ~a\n" positions)
+               ; Setting all the AI hashes to update the state of the game
               (set! prev-white-state hash-white-pieces)  
               (set! hash-white-pieces (hash-set hash-white-pieces piece-id (list (car (third positions)) 0 (- (third (hash-ref hash-white-pieces piece-id)) 7))))
               (set! hash-positions2 (hash-set hash-positions2 (second positions) #f))
               (set! hash-positions2 (hash-set hash-positions2 (car (third positions)) #t))
+               ; Doing the AI move
               (send (piece-at-location board (second positions)) set-location (car (third positions)))
               (position-piece board (piece-at-location board (car (third positions)))))))
           (set! turn 'black)
@@ -387,7 +391,7 @@
                       (if (> location-points 12)
                         (if (eq? location (hash-ref prev-black-state piece-id)) -500 0) 0) ; Previous move heuristic
                       (if (> location-points 11)
-                          (if (>= (hash-ref black-pieces-points (car hash-data)) location-points) -500 0) 0)))) 
+                          (if (>= (hash-ref black-pieces-points (car hash-data)) location-points) -500 0) 0)))) ; Subtract points if the piece moves in the same diagonal 
     sum))
 
 ; Sum AI points heuristics
@@ -403,7 +407,7 @@
                       (if (> location-points 12)
                         (if (eq? location (hash-ref prev-white-state piece-id)) -500 0) 0) ; Previous move heuristic
                       (if (> location-points 11)
-                          (if (>= (hash-ref white-pieces-points (car hash-data)) location-points) -500 0) 0)
+                          (if (>= (hash-ref white-pieces-points (car hash-data)) location-points) -500 0) 0) ; Subtract points if the piece moves in the same diagonal
                       
                       )))
     sum))
@@ -415,6 +419,8 @@
 
 ; alpha-beta-search
 ; Calls the max and min functions
+; Returns the eval value, original position, (new position . double jumps points)
+; Output: (70 h8 (f4 . 28))
 (define (alpha-beta-search total-depth)
   (max-value hash-white-pieces hash-black-pieces -10000 10000 0 total-depth hash-positions2 (hash) (hash)))
 
@@ -439,9 +445,10 @@
                 (let ((result (min-value black-pieces (hash-set white-pieces piece-id (list (car current-move) (cdr current-move) (third (hash-ref white-pieces piece-id))))
                                a b current-depth total-depth (hash-set (hash-set hash-tile-status (car current-piece) #f) (car current-move) #t)
                                hash-black-moves (hash-set hash-white-moves piece-id (list (car current-move) (cdr current-move) first-movement)))))
-                ; Check if the min value is bigger than b-value
+                ; Check if the min value is bigger
                 (when (> result b-value)
                   (set! b-value result)
+                  ; Set the original position and the new position of the moved piece
                   (when (eq? current-depth 0)
                   (set! b-original-pos (car current-piece))
                   (set! b-new-pos current-move))
@@ -467,7 +474,7 @@
                 (let ((result (max-value white-pieces (hash-set black-pieces piece-id (list (car current-move) (cdr current-move) (third (hash-ref black-pieces piece-id))))
                                a b (+ current-depth 1) total-depth (hash-set (hash-set hash-tile-status (car current-piece) #f) (car current-move) #t)
                                hash-white-moves (hash-set hash-black-moves piece-id (list (car current-move) (cdr current-move) first-movement)))))
-                ; Check if the max value is smaller than b-value
+                ; Check if the max value is smaller
                 (when (< (first result) b-value)
                   (set! b-value (first result))
                   ; Doing the pruning
@@ -480,6 +487,7 @@
 (define initial-AI-moves '( '("h9" "h7") '("h7" "g7") '("j9" "f7") '("i8" "g6") '("g9" "g8")))
 (define initial-move-counter 0)
 
+; Hash to see if there is a piece in a location
 (define hash-positions2
   (hash "a0" #t "a1" #t "a2" #t "a3" #t "a4" #f "a5" #f "a6" #f "a7" #f "a8" #f "a9" #f
         "b0" #t "b1" #t "b2" #t "b3" #f "b4" #f "b5" #f "b6" #f "b7" #f "b8" #f "b9" #f
